@@ -1,0 +1,16 @@
+{
+    "name": "EffectAssembly",
+    "rootNamespace": "",
+    "references": [
+        "GUID:4bc1c702f010f9b46b5fddd25967cae0"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
