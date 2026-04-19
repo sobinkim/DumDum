@@ -36,6 +36,8 @@ namespace SB._01.Scripts.Panel
 
         private void ShowPanelHandle(WorryEnterEvent evt)
         {
+            Bus<MainPanelButtonEnable>.Raise(new MainPanelButtonEnable(false));
+            
             if (isActive)
             {
                 print("이미 켜져있어");
@@ -69,17 +71,17 @@ namespace SB._01.Scripts.Panel
             EmotionType inputEmotionIcon = _selectEmotionManager.GetEmotionType();
 
             newWorryData.content = inputContent;
-            newWorryData.emotionIcon = inputEmotionIcon;
+            newWorryData.emotionType = inputEmotionIcon;
 
 
             if (inputContent.Length == 0 || inputEmotionIcon == EmotionType.Default)
             {
-                Bus<WorrySubmitFailEvent>.Raise(new WorrySubmitFailEvent());
+                Bus<SubmitFailEvent>.Raise(new SubmitFailEvent());
             }
             else
             {
                 Bus<WorrySubmittedEvent>.Raise(new WorrySubmittedEvent());
-                Bus<ShowThoughtReframePanelEvent>.Raise(new ShowThoughtReframePanelEvent());
+                Bus<ShowThoughtReframePanelEvent>.Raise(new ShowThoughtReframePanelEvent(newWorryData));
             }
         }
     }

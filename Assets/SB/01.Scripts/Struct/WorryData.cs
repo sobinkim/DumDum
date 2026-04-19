@@ -18,7 +18,7 @@
     public struct WorryData
     {
         public string content;
-        public EmotionType emotionIcon;
+        public EmotionType emotionType;
         
     }
 }

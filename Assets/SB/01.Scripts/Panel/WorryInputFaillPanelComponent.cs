@@ -9,7 +9,7 @@ namespace SB._01.Scripts.Panel
         private void Awake()
         {
             DisablePanel();
-            Bus<WorrySubmitFailEvent>.OnEvent += ShowPanel;
+            Bus<SubmitFailEvent>.OnEvent += ShowPanel;
         }
 
         public void Initialize(Entity entity)
@@ -21,7 +21,7 @@ namespace SB._01.Scripts.Panel
             gameObject.SetActive(false);
         }
 
-        private void ShowPanel(WorrySubmitFailEvent evt)
+        private void ShowPanel(SubmitFailEvent evt)
         {
             gameObject.SetActive(true);
         }
