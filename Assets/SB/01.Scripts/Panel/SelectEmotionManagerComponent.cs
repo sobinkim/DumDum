@@ -1,12 +1,19 @@
-﻿using SB._01.Scripts.Interface;
+﻿using System;
+using Core.EventBus;
+using SB._01.Scripts.Interface;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace SB._01.Scripts.Panel
 {
     public class SelectEmotionManagerComponent : MonoBehaviour, IEntityComponent
     {
-        [SerializeField] private EmotionType _emotionType;
+        [SerializeField] private EmotionType _currentEmotionType;
 
+        private void Awake()
+        {
+            Bus<WorrySubmittedEvent>.OnEvent += ResetCurrentEmotionType;
+        }
 
         public void Initialize(Entity entity)
         {
@@ -14,12 +21,17 @@ namespace SB._01.Scripts.Panel
 
         public EmotionType GetEmotionType()
         {
-            return _emotionType;
+            return _currentEmotionType;
         }
 
         public void SetEmotionType(EmotionType emotionType)
         {
-            _emotionType = emotionType;
+            _currentEmotionType = emotionType;
+        }
+
+        private void ResetCurrentEmotionType(WorrySubmittedEvent evt)
+        {
+            _currentEmotionType = EmotionType.Default;
         }
     }
 }

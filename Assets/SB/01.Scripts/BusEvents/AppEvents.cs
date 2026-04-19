@@ -16,8 +16,39 @@ public struct WorrySubmittedEvent : IEvent
     }
 }
 
+public struct ShowFocusPanel : IEvent
+{
+    
+}
+
+public struct HideFocusPanel  : IEvent
+{
+    
+}
 public struct WorrySubmitFailEvent : IEvent
 {
     
 }
+
+public struct ShowSpeechBubbleEvent : IEvent
+{
+    
+}
+
+public struct HideSpeechBubbleEvent : IEvent
+{
+    
+}
+public struct ShowThoughtReframePanelEvent : IEvent
+{
+    
+}
+
+public struct RejectionButton_ThoughtReframePanelEvent : IEvent
+{
+}public struct AcceptanceButton_ThoughtReframePanelEvent : IEvent
+{
+}
+
+
 

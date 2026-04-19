@@ -13,44 +13,51 @@ namespace SB._01.Scripts.Panel
         private Entity _entity;
         private SelectEmotionManagerComponent _selectEmotionManager;
         [SerializeField] private bool isActive = false;
-
+        
         private void Awake()
         {
-            DisablePanel(new WorrySubmittedEvent());
             Bus<WorryEnterEvent>.OnEvent += ShowPanelHandle;
             Bus<WorrySubmittedEvent>.OnEvent += DisablePanel;
-            Bus<WorrySubmitFailEvent>.OnEvent += SubmitFail;
         }
 
         private void OnDestroy()
         {
             Bus<WorrySubmittedEvent>.OnEvent -= DisablePanel;
             Bus<WorryEnterEvent>.OnEvent -= ShowPanelHandle;
-            Bus<WorrySubmitFailEvent>.OnEvent -= SubmitFail;
+ 
         }
 
         public void Initialize(Entity entity)
         {
             _entity = entity;
             _selectEmotionManager = _entity.GetCompo<SelectEmotionManagerComponent>();
+            DisablePanel(new WorrySubmittedEvent());
         }
 
         private void ShowPanelHandle(WorryEnterEvent evt)
         {
-            if(isActive)
+            if (isActive)
+            {
+                print("이미 켜져있어");
                 return;
+            }
+              
+            Bus<ShowFocusPanel>.Raise(new ShowFocusPanel());
+            Bus<ShowSpeechBubbleEvent>.Raise(new ShowSpeechBubbleEvent());
             
             isActive = true;
             gameObject.SetActive(true);
+            
+  
         }
 
-        private void SubmitFail(WorrySubmitFailEvent evt)
-        {
-        }
+      
 
         private void DisablePanel(WorrySubmittedEvent evt)
         {
             isActive = false;
+            Bus<HideFocusPanel>.Raise(new HideFocusPanel());
+            Bus<HideSpeechBubbleEvent>.Raise(new HideSpeechBubbleEvent());
             gameObject.SetActive(false);
         }
 
@@ -72,6 +79,7 @@ namespace SB._01.Scripts.Panel
             else
             {
                 Bus<WorrySubmittedEvent>.Raise(new WorrySubmittedEvent());
+                Bus<ShowThoughtReframePanelEvent>.Raise(new ShowThoughtReframePanelEvent());
             }
         }
     }
