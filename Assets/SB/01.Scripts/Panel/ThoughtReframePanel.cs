@@ -31,7 +31,7 @@ namespace SB._01.Scripts.Panel
         private bool SetCardData()
         {
             cardData.emotionType = _worryData.emotionType;
-            cardData.mainContents = _title_Text.text;
+            cardData.mainContents = _main_Text.text;
             cardData.title = _title_Text.text;
 
             if (_title_Text.text == String.Empty || _main_Text.text == String.Empty)

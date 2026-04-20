@@ -24,7 +24,7 @@ public struct HideFocusPanel : IEvent
 {
 }
 
-public struct SubmitFailEvent : IEvent// 타입 이넘 받아서 원하는 내용 뿌리자 여러개 만들지 말고
+public struct SubmitFailEvent : IEvent // 타입 이넘 받아서 원하는 내용 뿌리자 여러개 만들지 말고
 {
 }
 
@@ -44,7 +44,6 @@ public struct MainPanelButtonEnable : IEvent
     {
         this.enable = inputEnable;
     }
-    
 }
 
 public struct ShowThoughtReframePanelEvent : IEvent
@@ -70,6 +69,16 @@ public struct RequestCreateCardEvent : IEvent
     public CardData cardData;
 
     public RequestCreateCardEvent(CardData inputCardData)
+    {
+        cardData = inputCardData;
+    }
+}
+
+public struct ShowCardPanel : IEvent
+{
+    public CardData cardData;
+
+    public ShowCardPanel(CardData inputCardData)
     {
         cardData = inputCardData;
     }
