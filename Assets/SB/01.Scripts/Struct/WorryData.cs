@@ -14,8 +14,6 @@
         Angry,
         Disappointed,
         Overwhelmed,
-        Sad2
-        
     }
     public struct WorryData
     {
