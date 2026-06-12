@@ -35,11 +35,11 @@ MonoBehaviour:
     routeType: 2
     title: "\uBA70\uCE60 \uC804 \uC801\uC740 \uAC71\uC815\uC774 \uC788\uC5B4\uC694"
     body: "\uC2E4\uC81C\uB85C \uC5B4\uB5BB\uAC8C \uB418\uC5C8\uB294\uC9C0 \uD655\uC778\uD574\uBCFC\uAE4C\uC694?"
-    delayDays: 3
+    delayDays: 0
     delayHours: 0
-    delayMinutes: 0
-    useFixedClockTime: 1
-    fixedHour: 20
+    delayMinutes: 1
+    useFixedClockTime: 0
+    fixedHour: 0
     fixedMinute: 0
     repeat: 0
     repeatIntervalDays: 1

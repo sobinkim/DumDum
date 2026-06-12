@@ -35,6 +35,7 @@ namespace SB.App.Application
         private WorryRepository _repository;
         private DailyClosureService _dailyClosureService;
         private MobileNotificationService _notificationService;
+        private SupportInterventionService _supportInterventionService;
         private bool _viewsBound;
 
         private void Awake()
@@ -88,10 +89,11 @@ namespace SB.App.Application
             _dailyClosureService = new DailyClosureService();
             _dailyClosureService.ClearExpiredLock();
             _notificationService = new MobileNotificationService(notificationCatalog);
+            _supportInterventionService = new SupportInterventionService(_notificationService);
             _repository = new WorryRepository();
 
             if (whiteboardPresenter != null)
-                whiteboardPresenter.Initialize(_repository);
+                whiteboardPresenter.Initialize(_repository, _supportInterventionService);
 
             BindViews();
 
@@ -289,6 +291,7 @@ namespace SB.App.Application
             WorryCard card = WorryCard.FromDraft(_draft);
             _repository.Add(card);
             _notificationService?.ScheduleWorryReview(card);
+            _supportInterventionService?.ScheduleBestReminder(_repository, card);
             Bus<WorryCardCreatedEvent>.Raise(new WorryCardCreatedEvent(card));
 
             _draft.Clear();

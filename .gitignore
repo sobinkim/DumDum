@@ -39,6 +39,8 @@
 
 # ML-Agents local environment and generated training output
 .venv/
+.python310/
+.downloads/
 /MLRuns/
 /results/
 

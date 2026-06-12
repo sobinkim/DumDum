@@ -33,6 +33,26 @@ namespace SB.App.Application
             ScheduleRules(NotificationTriggerType.ManualTest, DateTime.Now, null);
         }
 
+        public bool ScheduleSupportIntervention(SupportInterventionDecision decision, DateTime sourceTime)
+        {
+            if (!decision.HasNotification)
+                return false;
+
+            DateTime fireTime = sourceTime.Add(decision.Delay);
+            if (fireTime <= DateTime.Now)
+                fireTime = DateTime.Now.AddMinutes(1);
+
+            string payload = NotificationPayload.Create(decision.Id, decision.RouteType, decision.CardId);
+            return _gateway.Schedule(new NotificationScheduleRequest(
+                decision.Id,
+                decision.Title,
+                decision.Body,
+                fireTime,
+                false,
+                TimeSpan.FromDays(1),
+                payload));
+        }
+
         private void ScheduleRules(NotificationTriggerType triggerType, DateTime sourceTime, string cardId)
         {
             if (_catalog == null)
