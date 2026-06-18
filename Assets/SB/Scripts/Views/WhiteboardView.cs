@@ -236,7 +236,6 @@ namespace SB.App.Views
 
             grid.childAlignment = TextAnchor.UpperLeft;
             grid.padding = new RectOffset(8, 8, 10, 20);
-            grid.spacing = new Vector2(15f, 34f);
             grid.cellSize = new Vector2(150f, 176f);
 
             int columns = grid.constraint == GridLayoutGroup.Constraint.FixedColumnCount

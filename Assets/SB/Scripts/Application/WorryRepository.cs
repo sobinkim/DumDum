@@ -114,6 +114,7 @@ namespace SB.App.Application
             public WorryEmotionState emotionState;
             public WorryOutcomeTag outcomeTag;
             public long outcomeTaggedAtUtcTicks;
+            public int memoDesignIndex;
 
             public static StoredWorryCard FromDomain(WorryCard card)
             {
@@ -135,7 +136,8 @@ namespace SB.App.Application
                     outcomeTag = card.OutcomeTag,
                     outcomeTaggedAtUtcTicks = card.OutcomeTaggedAt.HasValue
                         ? card.OutcomeTaggedAt.Value.ToUniversalTime().Ticks
-                        : 0
+                        : 0,
+                    memoDesignIndex = card.MemoDesignIndex
                 };
             }
 
@@ -164,7 +166,8 @@ namespace SB.App.Application
                     outcomeTag,
                     taggedAt,
                     probabilityPercent,
-                    copingActions);
+                    copingActions,
+                    memoDesignIndex);
             }
         }
     }

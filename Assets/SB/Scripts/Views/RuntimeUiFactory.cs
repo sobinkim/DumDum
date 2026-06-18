@@ -6,7 +6,7 @@ namespace SB.App.Views
 {
     public static class RuntimeUiFactory
     {
-        private const string KoreanFontResourcePath = "Fonts & Materials/NotoSansKR-Regular SDF";
+        private const string KoreanFontResourcePath = "Fonts & Materials/Ownglyph_ParkDaHyun SDF";
 
         private static TMP_FontAsset _koreanFont;
 

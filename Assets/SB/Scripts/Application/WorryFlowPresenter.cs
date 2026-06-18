@@ -265,13 +265,13 @@ namespace SB.App.Application
             ShowStep(WorryFlowStep.ThoughtCheck);
         }
 
-        private void SubmitThoughtCheck(string evidence, string counterEvidence, string alternativeThought)
+        private void SubmitThoughtCheck(string evidence, string counterEvidence)
         {
-            _draft.SetThoughtCheck(evidence, counterEvidence, alternativeThought);
+            _draft.SetThoughtCheck(evidence, counterEvidence);
 
             if (!_draft.HasThoughtCheck)
             {
-                ShowFeedback("지금 생각을 점검할 근거나 다른 해석을 하나 적어주세요.");
+                ShowFeedback("지금 생각을 점검할 근거나 반대 근거를 하나 적어주세요.");
                 return;
             }
 
@@ -458,7 +458,7 @@ namespace SB.App.Application
                 return;
 
             thoughtCheckView.ApplyContent(content);
-            thoughtCheckView.SetInputs(_draft.EvidenceText, _draft.CounterEvidenceText, _draft.AlternativeThoughtText);
+            thoughtCheckView.SetInputs(_draft.EvidenceText, _draft.CounterEvidenceText);
             thoughtCheckView.Show();
         }
 
@@ -518,8 +518,16 @@ namespace SB.App.Application
                 ? _dailyClosureService.CloseToday()
                 : new DailyClosureState(System.DateTime.Now, System.DateTime.Now.Date.AddDays(1).AddHours(12));
 
-            _notificationService?.ScheduleDailyClosure(state, _repository);
             ShowDailyClosureScreen();
+
+            try
+            {
+                _notificationService?.ScheduleDailyClosure(state, _repository);
+            }
+            catch (System.Exception exception)
+            {
+                Debug.LogWarning($"[DumDum] Daily closure notification scheduling failed: {exception.Message}");
+            }
         }
 
         private void ShowDailyClosureScreen()

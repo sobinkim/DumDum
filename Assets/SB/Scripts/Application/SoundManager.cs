@@ -9,8 +9,15 @@ namespace SB.App.Application
         private const string MutedKey = "DumDum.Sound.Muted";
 
         [SerializeField, Range(0f, 1f)] private float defaultVolume = 0.8f;
+        [SerializeField] private AudioClip bgmClip;
+        [SerializeField] private AudioClip buttonClickClip;
+        [SerializeField] private AudioClip defaultEffectClip;
+        [SerializeField, Range(0f, 1f)] private float bgmVolume = 0.55f;
+        [SerializeField, Range(0f, 1f)] private float effectVolume = 1f;
 
         private static SoundManager _instance;
+        private AudioSource _bgmSource;
+        private AudioSource _effectSource;
         private float _masterVolume;
         private bool _isMuted;
 
@@ -23,15 +30,30 @@ namespace SB.App.Application
         public static SoundManager GetOrCreate()
         {
             if (_instance != null)
+            {
+                EnsureSoundSettingsInstaller(_instance);
                 return _instance;
+            }
 
             _instance = FindFirstObjectByType<SoundManager>();
             if (_instance != null)
+            {
+                EnsureSoundSettingsInstaller(_instance);
                 return _instance;
+            }
 
             GameObject root = new GameObject(nameof(SoundManager));
             _instance = root.AddComponent<SoundManager>();
+            EnsureSoundSettingsInstaller(_instance);
             return _instance;
+        }
+
+        private static void EnsureSoundSettingsInstaller(SoundManager manager)
+        {
+            if (manager == null || manager.GetComponent<SoundSettingsInstaller>() != null)
+                return;
+
+            manager.gameObject.AddComponent<SoundSettingsInstaller>();
         }
 
         private void Awake()
@@ -44,8 +66,11 @@ namespace SB.App.Application
 
             _instance = this;
             DontDestroyOnLoad(gameObject);
+            EnsureAudioSources();
             LoadSettings();
             ApplySettings(false);
+            PlayBgmIfReady();
+            EnsureSoundSettingsInstaller(this);
         }
 
         public void SetMasterVolume(float volume)
@@ -74,6 +99,33 @@ namespace SB.App.Application
             SetMuted(!_isMuted);
         }
 
+        public void PlayButtonClick()
+        {
+            PlayEffect(buttonClickClip);
+        }
+
+        public void PlayDefaultEffect()
+        {
+            PlayEffect(defaultEffectClip);
+        }
+
+        public void PlayEffect(AudioClip clip)
+        {
+            if (clip == null)
+                return;
+
+            EnsureAudioSources();
+            _effectSource.PlayOneShot(clip, effectVolume);
+        }
+
+        public void SetBgmClip(AudioClip clip, bool playImmediately = true)
+        {
+            bgmClip = clip;
+
+            if (playImmediately)
+                PlayBgmIfReady();
+        }
+
         private void LoadSettings()
         {
             _masterVolume = Mathf.Clamp01(PlayerPrefs.GetFloat(VolumeKey, defaultVolume));
@@ -89,10 +141,44 @@ namespace SB.App.Application
 
         private void ApplySettings(bool notify)
         {
+            EnsureAudioSources();
             AudioListener.volume = _isMuted ? 0f : _masterVolume;
+            _bgmSource.volume = bgmVolume;
+            _effectSource.volume = effectVolume;
 
             if (notify)
                 SettingsChanged?.Invoke(_masterVolume, _isMuted);
+        }
+
+        private void EnsureAudioSources()
+        {
+            if (_bgmSource == null)
+            {
+                _bgmSource = gameObject.AddComponent<AudioSource>();
+                _bgmSource.playOnAwake = false;
+                _bgmSource.loop = true;
+            }
+
+            if (_effectSource == null)
+            {
+                _effectSource = gameObject.AddComponent<AudioSource>();
+                _effectSource.playOnAwake = false;
+                _effectSource.loop = false;
+            }
+        }
+
+        private void PlayBgmIfReady()
+        {
+            if (bgmClip == null)
+                return;
+
+            EnsureAudioSources();
+            if (_bgmSource.clip == bgmClip && _bgmSource.isPlaying)
+                return;
+
+            _bgmSource.clip = bgmClip;
+            _bgmSource.volume = bgmVolume;
+            _bgmSource.Play();
         }
     }
 }

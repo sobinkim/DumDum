@@ -8,18 +8,33 @@ namespace SB.App.Application
 {
     public sealed class SoundSettingsInstaller : MonoBehaviour
     {
-        private static readonly Color TextColor = new Color(0.13f, 0.14f, 0.16f);
-        private static readonly Color PrimaryColor = new Color(0.11f, 0.44f, 0.53f);
-        private static readonly Color SecondaryColor = new Color(0.88f, 0.91f, 0.86f);
+        private const string SoundButtonName = "\uC18C\uB9AC Button";
         private static readonly Color PurpleColor = new Color(0.72f, 0.08f, 0.92f);
-        private static readonly Color PanelColor = new Color(0.99f, 0.97f, 1f);
+
+        private void OnEnable()
+        {
+            SceneManager.sceneLoaded += OnSceneLoaded;
+        }
+
+        private void OnDisable()
+        {
+            SceneManager.sceneLoaded -= OnSceneLoaded;
+        }
 
         private void Awake()
         {
-            SoundManager.GetOrCreate();
+            Install();
+        }
 
-            if (FindSceneComponent<SoundSettingsPanelView>() != null)
-                return;
+        private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+        {
+            Install();
+        }
+
+        private void Install()
+        {
+            SoundManager.GetOrCreate();
+            RemoveLegacySoundSettingsViews();
 
             RectTransform frame = FindSceneRect("App Frame");
             if (frame == null)
@@ -32,15 +47,23 @@ namespace SB.App.Application
                 return;
 
             RectTransform header = FindSceneRect("Whiteboard Header");
-            Button openButton = CreateOpenButton(header, frame);
-            CreatePanel(frame, openButton);
+            Button soundButton = FindExistingSoundButton(header);
+            if (soundButton == null)
+                soundButton = CreateSoundButton(header, frame);
+
+            SoundSettingsPanelView toggleView = soundButton.GetComponent<SoundSettingsPanelView>();
+            if (toggleView == null)
+                toggleView = soundButton.gameObject.AddComponent<SoundSettingsPanelView>();
+
+            toggleView.SetControls(soundButton);
         }
 
-        private static Button CreateOpenButton(RectTransform header, RectTransform fallbackParent)
+        private static Button CreateSoundButton(RectTransform header, RectTransform fallbackParent)
         {
             RectTransform parent = header != null ? header : fallbackParent;
-            Button openButton = RuntimeUiFactory.CreateButton(parent, "소리", new Color(0.97f, 0.91f, 1f), PurpleColor, 54f, 54f);
-            RectTransform buttonRect = openButton.GetComponent<RectTransform>();
+            Button soundButton = RuntimeUiFactory.CreateButton(parent, string.Empty, Color.white, PurpleColor, 54f, 54f);
+            soundButton.gameObject.name = SoundButtonName;
+            RectTransform buttonRect = soundButton.GetComponent<RectTransform>();
 
             if (header != null)
             {
@@ -52,67 +75,57 @@ namespace SB.App.Application
                 RuntimeUiFactory.Anchor(buttonRect, new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(-78f, -78f), new Vector2(-24f, -24f));
             }
 
-            Outline outline = openButton.gameObject.AddComponent<Outline>();
-            outline.effectColor = new Color(0.84f, 0.66f, 0.98f, 0.55f);
-            outline.effectDistance = new Vector2(1.5f, -1.5f);
-            return openButton;
+            return soundButton;
         }
 
-        private static void CreatePanel(RectTransform parent, Button openButton)
+        private static void RemoveLegacySoundSettingsViews()
         {
-            RectTransform controller = RuntimeUiFactory.CreateRect("Sound Settings View", parent);
-            RuntimeUiFactory.Stretch(controller);
+            RectTransform[] rects = Resources.FindObjectsOfTypeAll<RectTransform>();
+            Scene activeScene = SceneManager.GetActiveScene();
 
-            RectTransform overlay = RuntimeUiFactory.CreateRect("Sound Settings Panel", controller);
-            RuntimeUiFactory.Stretch(overlay);
-            RuntimeUiFactory.AddImage(overlay.gameObject, new Color(0.08f, 0.08f, 0.1f, 0.36f), true);
+            for (int i = 0; i < rects.Length; i++)
+            {
+                RectTransform rect = rects[i];
+                if (rect == null || rect.name != "Sound Settings View" || rect.gameObject.scene != activeScene)
+                    continue;
 
-            RectTransform panel = RuntimeUiFactory.CreateRect("Panel", overlay);
-            RuntimeUiFactory.Anchor(panel, new Vector2(0f, 0.5f), new Vector2(1f, 0.5f), new Vector2(24f, -138f), new Vector2(-24f, 138f));
-            RuntimeUiFactory.AddImage(panel.gameObject, PanelColor, true);
+                if (UnityEngine.Application.isPlaying)
+                    Destroy(rect.gameObject);
+                else
+                    DestroyImmediate(rect.gameObject);
+            }
+        }
 
-            VerticalLayoutGroup panelLayout = panel.gameObject.AddComponent<VerticalLayoutGroup>();
-            panelLayout.padding = new RectOffset(20, 20, 18, 18);
-            panelLayout.spacing = 14f;
-            panelLayout.childControlHeight = false;
-            panelLayout.childControlWidth = true;
+        private static Button FindExistingSoundButton(RectTransform header)
+        {
+            if (header == null)
+                return null;
 
-            RectTransform header = RuntimeUiFactory.CreateRect("Sound Header", panel);
-            HorizontalLayoutGroup headerLayout = header.gameObject.AddComponent<HorizontalLayoutGroup>();
-            headerLayout.spacing = 10f;
-            headerLayout.childControlHeight = false;
-            headerLayout.childControlWidth = true;
-            headerLayout.childForceExpandWidth = false;
-            headerLayout.childAlignment = TextAnchor.MiddleCenter;
-            RuntimeUiFactory.AddLayout(header.gameObject, -1f, 42f);
+            Button[] buttons = header.GetComponentsInChildren<Button>(true);
+            for (int i = 0; i < buttons.Length; i++)
+            {
+                Button button = buttons[i];
+                if (button == null)
+                    continue;
 
-            TMP_Text title = RuntimeUiFactory.CreateText(header, "사운드 설정", 22f, FontStyles.Bold, TextColor, TextAlignmentOptions.Left);
-            RuntimeUiFactory.AddLayout(title.gameObject, -1f, 42f);
-            Button closeButton = RuntimeUiFactory.CreateButton(header, "닫기", SecondaryColor, TextColor, 72f, 38f);
+                RectTransform rect = button.transform as RectTransform;
+                if (rect == null)
+                    continue;
 
-            RectTransform volumeRow = RuntimeUiFactory.CreateRect("Volume Row", panel);
-            HorizontalLayoutGroup volumeLayout = volumeRow.gameObject.AddComponent<HorizontalLayoutGroup>();
-            volumeLayout.spacing = 10f;
-            volumeLayout.childControlHeight = false;
-            volumeLayout.childControlWidth = true;
-            volumeLayout.childForceExpandWidth = false;
-            volumeLayout.childAlignment = TextAnchor.MiddleCenter;
-            RuntimeUiFactory.AddLayout(volumeRow.gameObject, -1f, 30f);
+                if (button.name == SoundButtonName)
+                    return button;
 
-            TMP_Text volumeLabel = RuntimeUiFactory.CreateText(volumeRow, "전체 소리", 16f, FontStyles.Bold, TextColor, TextAlignmentOptions.Left);
-            RuntimeUiFactory.AddLayout(volumeLabel.gameObject, -1f, 30f);
-            TMP_Text volumeValue = RuntimeUiFactory.CreateText(volumeRow, "80%", 16f, FontStyles.Bold, PurpleColor, TextAlignmentOptions.Right);
-            RuntimeUiFactory.AddLayout(volumeValue.gameObject, 58f, 30f);
+                bool isSoundButtonSlot =
+                    rect.anchorMin == new Vector2(1f, 1f) &&
+                    rect.anchorMax == new Vector2(1f, 1f) &&
+                    Mathf.Approximately(rect.offsetMin.x, -116f) &&
+                    Mathf.Approximately(rect.offsetMax.x, -62f);
 
-            Slider slider = RuntimeUiFactory.CreateSlider(panel, SecondaryColor, PrimaryColor, new Color(0.93f, 0.72f, 0.25f));
-            slider.value = 0.8f;
+                if (isSoundButtonSlot)
+                    return button;
+            }
 
-            Button muteButton = RuntimeUiFactory.CreateButton(panel, "음소거", PrimaryColor, Color.white, -1f, 46f);
-            TMP_Text muteLabel = muteButton.GetComponentInChildren<TMP_Text>(true);
-
-            SoundSettingsPanelView view = controller.gameObject.AddComponent<SoundSettingsPanelView>();
-            view.SetControls(overlay.gameObject, openButton, closeButton, muteButton, slider, volumeValue, muteLabel);
-            overlay.gameObject.SetActive(false);
+            return null;
         }
 
         private static void NarrowWhiteboardTitle(RectTransform header)
@@ -145,21 +158,6 @@ namespace SB.App.Application
                     continue;
 
                 return rect;
-            }
-
-            return null;
-        }
-
-        private static T FindSceneComponent<T>() where T : Component
-        {
-            T[] components = Resources.FindObjectsOfTypeAll<T>();
-            Scene activeScene = SceneManager.GetActiveScene();
-
-            for (int i = 0; i < components.Length; i++)
-            {
-                T component = components[i];
-                if (component != null && component.gameObject.scene == activeScene)
-                    return component;
             }
 
             return null;

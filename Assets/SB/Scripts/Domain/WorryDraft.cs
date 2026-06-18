@@ -10,7 +10,6 @@ namespace SB.App.Domain
         public string AssumptionsText { get; private set; } = string.Empty;
         public string EvidenceText { get; private set; } = string.Empty;
         public string CounterEvidenceText { get; private set; } = string.Empty;
-        public string AlternativeThoughtText { get; private set; } = string.Empty;
         public string ActionPlan { get; private set; } = string.Empty;
         public string Takeaway { get; private set; } = string.Empty;
         public WorryEmotionState EmotionState { get; private set; } = WorryEmotionState.Unset;
@@ -22,7 +21,6 @@ namespace SB.App.Domain
             AssumptionsText = string.Empty;
             EvidenceText = string.Empty;
             CounterEvidenceText = string.Empty;
-            AlternativeThoughtText = string.Empty;
             ActionPlan = string.Empty;
             Takeaway = string.Empty;
             EmotionState = WorryEmotionState.Unset;
@@ -39,11 +37,10 @@ namespace SB.App.Domain
             AssumptionsText = Normalize(assumptions);
         }
 
-        public void SetThoughtCheck(string evidence, string counterEvidence, string alternativeThought)
+        public void SetThoughtCheck(string evidence, string counterEvidence)
         {
             EvidenceText = Normalize(evidence);
             CounterEvidenceText = Normalize(counterEvidence);
-            AlternativeThoughtText = Normalize(alternativeThought);
         }
 
         public void SetActionPlan(string value)
@@ -65,8 +62,7 @@ namespace SB.App.Domain
         public bool HasFactCheck => !string.IsNullOrWhiteSpace(FactsText) && !string.IsNullOrWhiteSpace(AssumptionsText);
         public bool HasThoughtCheck =>
             !string.IsNullOrWhiteSpace(EvidenceText) ||
-            !string.IsNullOrWhiteSpace(CounterEvidenceText) ||
-            !string.IsNullOrWhiteSpace(AlternativeThoughtText);
+            !string.IsNullOrWhiteSpace(CounterEvidenceText);
         public bool HasActionPlan => !string.IsNullOrWhiteSpace(ActionPlan);
         public bool HasTakeaway => !string.IsNullOrWhiteSpace(Takeaway);
         public bool HasEmotionState => EmotionState != WorryEmotionState.Unset;

@@ -453,13 +453,11 @@ namespace SB.App.Views
         private static string CreateThoughtCheckText(WorryCard card)
         {
             if (!string.IsNullOrWhiteSpace(card.EvidenceText) ||
-                !string.IsNullOrWhiteSpace(card.CounterEvidenceText) ||
-                !string.IsNullOrWhiteSpace(card.AlternativeThoughtText))
+                !string.IsNullOrWhiteSpace(card.CounterEvidenceText))
             {
                 return
                     $"근거\n{CreateValueOrEmpty(card.EvidenceText)}\n\n" +
-                    $"반대 근거\n{CreateValueOrEmpty(card.CounterEvidenceText)}\n\n" +
-                    $"다른 해석\n{CreateValueOrEmpty(card.AlternativeThoughtText)}";
+                    $"반대 근거\n{CreateValueOrEmpty(card.CounterEvidenceText)}";
             }
 
             if (card.CopingActions == null || card.CopingActions.Length <= 0)

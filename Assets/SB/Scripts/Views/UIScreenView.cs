@@ -25,6 +25,7 @@ namespace SB.App.Views
         public virtual void Show()
         {
             Root.SetActive(true);
+            Root.transform.SetAsLastSibling();
             BeginShowAnimation();
         }
 

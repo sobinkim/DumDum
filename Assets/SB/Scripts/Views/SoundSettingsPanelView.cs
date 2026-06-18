@@ -7,23 +7,25 @@ namespace SB.App.Views
 {
     public sealed class SoundSettingsPanelView : MonoBehaviour
     {
-        [SerializeField] private GameObject panelRoot;
-        [SerializeField] private Button openButton;
-        [SerializeField] private Button closeButton;
-        [SerializeField] private Button muteButton;
-        [SerializeField] private Slider volumeSlider;
-        [SerializeField] private TMP_Text volumeValueLabel;
-        [SerializeField] private TMP_Text muteButtonLabel;
+        private const string SoundOnIconPath = "Sound/soundPlayIcon";
+        private const string MutedIconPath = "Sound/muteIcon";
+
+        [SerializeField] private Button toggleButton;
+        [SerializeField] private Image buttonImage;
+        [SerializeField] private Sprite soundOnSprite;
+        [SerializeField] private Sprite mutedSprite;
+
+        [SerializeField, HideInInspector] private Button openButton;
 
         private SoundManager _soundManager;
         private bool _isListening;
-        private bool _isSyncing;
 
         private void Awake()
         {
+            UpgradeLegacyReferences();
+            LoadIcons();
             _soundManager = SoundManager.GetOrCreate();
             RegisterListeners();
-            Hide();
             Refresh(_soundManager.MasterVolume, _soundManager.IsMuted);
         }
 
@@ -32,44 +34,18 @@ namespace SB.App.Views
             UnregisterListeners();
         }
 
-        public void SetControls(
-            GameObject root,
-            Button open,
-            Button close,
-            Button mute,
-            Slider slider,
-            TMP_Text valueLabel,
-            TMP_Text muteLabel)
+        public void SetControls(Button button)
         {
             UnregisterListeners();
 
-            panelRoot = root;
-            openButton = open;
-            closeButton = close;
-            muteButton = mute;
-            volumeSlider = slider;
-            volumeValueLabel = valueLabel;
-            muteButtonLabel = muteLabel;
+            toggleButton = button;
+            buttonImage = button != null ? button.targetGraphic as Image : null;
 
+            LoadIcons();
+            CleanButtonVisuals();
             _soundManager = SoundManager.GetOrCreate();
             RegisterListeners();
-            Hide();
             Refresh(_soundManager.MasterVolume, _soundManager.IsMuted);
-        }
-
-        public void Show()
-        {
-            if (panelRoot != null)
-                panelRoot.SetActive(true);
-
-            if (_soundManager != null)
-                Refresh(_soundManager.MasterVolume, _soundManager.IsMuted);
-        }
-
-        public void Hide()
-        {
-            if (panelRoot != null)
-                panelRoot.SetActive(false);
         }
 
         private void RegisterListeners()
@@ -77,17 +53,8 @@ namespace SB.App.Views
             if (_isListening)
                 return;
 
-            if (openButton != null)
-                openButton.onClick.AddListener(Show);
-
-            if (closeButton != null)
-                closeButton.onClick.AddListener(Hide);
-
-            if (muteButton != null)
-                muteButton.onClick.AddListener(ToggleMuted);
-
-            if (volumeSlider != null)
-                volumeSlider.onValueChanged.AddListener(SetVolume);
+            if (toggleButton != null)
+                toggleButton.onClick.AddListener(ToggleMuted);
 
             if (_soundManager != null)
                 _soundManager.SettingsChanged += Refresh;
@@ -100,17 +67,8 @@ namespace SB.App.Views
             if (!_isListening)
                 return;
 
-            if (openButton != null)
-                openButton.onClick.RemoveListener(Show);
-
-            if (closeButton != null)
-                closeButton.onClick.RemoveListener(Hide);
-
-            if (muteButton != null)
-                muteButton.onClick.RemoveListener(ToggleMuted);
-
-            if (volumeSlider != null)
-                volumeSlider.onValueChanged.RemoveListener(SetVolume);
+            if (toggleButton != null)
+                toggleButton.onClick.RemoveListener(ToggleMuted);
 
             if (_soundManager != null)
                 _soundManager.SettingsChanged -= Refresh;
@@ -118,41 +76,81 @@ namespace SB.App.Views
             _isListening = false;
         }
 
-        private void SetVolume(float value)
-        {
-            if (_isSyncing || _soundManager == null)
-                return;
-
-            _soundManager.SetMasterVolume(value);
-            if (value > 0f && _soundManager.IsMuted)
-                _soundManager.SetMuted(false);
-        }
-
         private void ToggleMuted()
         {
-            if (_soundManager != null)
-                _soundManager.ToggleMuted();
+            if (_soundManager == null)
+                return;
+
+            _soundManager.PlayButtonClick();
+            _soundManager.ToggleMuted();
         }
 
         private void Refresh(float volume, bool isMuted)
         {
-            _isSyncing = true;
-
-            if (volumeSlider != null)
+            if (buttonImage != null)
             {
-                volumeSlider.minValue = 0f;
-                volumeSlider.maxValue = 1f;
-                volumeSlider.wholeNumbers = false;
-                volumeSlider.SetValueWithoutNotify(volume);
+                Sprite targetSprite = isMuted ? mutedSprite : soundOnSprite;
+                if (targetSprite != null)
+                    buttonImage.sprite = targetSprite;
+
+                buttonImage.color = Color.white;
+                buttonImage.preserveAspect = true;
             }
 
-            if (volumeValueLabel != null)
-                volumeValueLabel.text = Mathf.RoundToInt(volume * 100f) + "%";
+            CleanButtonVisuals();
+        }
 
-            if (muteButtonLabel != null)
-                muteButtonLabel.text = isMuted ? "소리 켜기" : "음소거";
+        private void UpgradeLegacyReferences()
+        {
+            if (toggleButton == null && openButton != null)
+                toggleButton = openButton;
 
-            _isSyncing = false;
+            if (toggleButton == null)
+            {
+                Button[] buttons = GetComponentsInChildren<Button>(true);
+                if (buttons.Length > 0)
+                    toggleButton = buttons[0];
+            }
+
+            if (buttonImage == null && toggleButton != null)
+                buttonImage = toggleButton.targetGraphic as Image;
+        }
+
+        private void LoadIcons()
+        {
+            if (soundOnSprite == null)
+                soundOnSprite = Resources.Load<Sprite>(SoundOnIconPath);
+
+            if (mutedSprite == null)
+                mutedSprite = Resources.Load<Sprite>(MutedIconPath);
+        }
+
+        private void CleanButtonVisuals()
+        {
+            if (toggleButton == null)
+                return;
+
+            TMP_Text[] labels = toggleButton.GetComponentsInChildren<TMP_Text>(true);
+            for (int i = 0; i < labels.Length; i++)
+            {
+                if (labels[i] != null)
+                    labels[i].gameObject.SetActive(false);
+            }
+
+            Outline[] outlines = toggleButton.GetComponents<Outline>();
+            for (int i = 0; i < outlines.Length; i++)
+            {
+                if (outlines[i] != null)
+                    outlines[i].enabled = false;
+            }
+
+            Image targetImage = buttonImage != null ? buttonImage : toggleButton.targetGraphic as Image;
+            if (targetImage != null)
+            {
+                buttonImage = targetImage;
+                buttonImage.color = Color.white;
+                buttonImage.preserveAspect = true;
+            }
         }
     }
 }

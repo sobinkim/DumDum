@@ -1,4 +1,5 @@
 using System;
+using SB.App.Application;
 using SB.App.Domain;
 using TMPro;
 using UnityEngine;
@@ -16,6 +17,7 @@ namespace SB.App.Views
         [SerializeField] private Button selectButton;
         [SerializeField] private Image backgroundImage;
         [SerializeField] private Outline outcomeOutline;
+        [SerializeField] private WorryMemoDesignManager memoDesignManager;
 
         private WorryCard _card;
         private bool _isListening;
@@ -40,7 +42,8 @@ namespace SB.App.Views
             TMP_Text outcome,
             Button select,
             Image background,
-            Outline outline)
+            Outline outline,
+            WorryMemoDesignManager designManager = null)
         {
             UnregisterListeners();
             emotionText = emotion;
@@ -51,6 +54,7 @@ namespace SB.App.Views
             selectButton = select;
             backgroundImage = background;
             outcomeOutline = outline;
+            memoDesignManager = designManager;
             RegisterListeners();
         }
 
@@ -110,7 +114,14 @@ namespace SB.App.Views
         private void ApplyCardStyle(WorryCard card)
         {
             if (backgroundImage != null)
-                backgroundImage.color = CreateBackgroundColor(card);
+            {
+                Sprite memoSprite = memoDesignManager != null ? memoDesignManager.GetMemoSprite(card.MemoDesignIndex) : backgroundImage.sprite;
+                if (memoSprite != null)
+                    backgroundImage.sprite = memoSprite;
+
+                backgroundImage.color = backgroundImage.sprite != null ? Color.white : CreateBackgroundColor(card);
+                backgroundImage.preserveAspect = false;
+            }
 
             if (outcomeOutline != null)
             {
@@ -148,9 +159,6 @@ namespace SB.App.Views
         {
             if (!string.IsNullOrWhiteSpace(card.Takeaway))
                 return card.Takeaway;
-
-            if (!string.IsNullOrWhiteSpace(card.AlternativeThoughtText))
-                return card.AlternativeThoughtText;
 
             return card.ActionPlan;
         }

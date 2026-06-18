@@ -9,13 +9,12 @@ namespace SB.App.Views
     {
         [SerializeField] private TMP_InputField evidenceInput;
         [SerializeField] private TMP_InputField counterEvidenceInput;
-        [SerializeField] private TMP_InputField alternativeThoughtInput;
         [SerializeField] private Button submitButton;
         [SerializeField] private Button backButton;
 
         private bool _isListening;
 
-        public event Action<string, string, string> Submitted;
+        public event Action<string, string> Submitted;
         public event Action BackRequested;
 
         private void Awake()
@@ -31,29 +30,24 @@ namespace SB.App.Views
         public void SetControls(
             TMP_InputField evidence,
             TMP_InputField counterEvidence,
-            TMP_InputField alternativeThought,
             Button submit,
             Button back)
         {
             UnregisterListeners();
             evidenceInput = evidence;
             counterEvidenceInput = counterEvidence;
-            alternativeThoughtInput = alternativeThought;
             submitButton = submit;
             backButton = back;
             RegisterListeners();
         }
 
-        public void SetInputs(string evidence, string counterEvidence, string alternativeThought)
+        public void SetInputs(string evidence, string counterEvidence)
         {
             if (evidenceInput != null)
                 evidenceInput.text = evidence ?? string.Empty;
 
             if (counterEvidenceInput != null)
                 counterEvidenceInput.text = counterEvidence ?? string.Empty;
-
-            if (alternativeThoughtInput != null)
-                alternativeThoughtInput.text = alternativeThought ?? string.Empty;
         }
 
         private void RegisterListeners()
@@ -88,8 +82,7 @@ namespace SB.App.Views
         {
             string evidence = evidenceInput != null ? evidenceInput.text : string.Empty;
             string counterEvidence = counterEvidenceInput != null ? counterEvidenceInput.text : string.Empty;
-            string alternativeThought = alternativeThoughtInput != null ? alternativeThoughtInput.text : string.Empty;
-            Submitted?.Invoke(evidence, counterEvidence, alternativeThought);
+            Submitted?.Invoke(evidence, counterEvidence);
         }
 
         private void RequestBack()

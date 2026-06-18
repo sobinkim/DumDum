@@ -21,6 +21,7 @@ namespace SB.App.Domain
         public WorryEmotionState EmotionState { get; private set; }
         public WorryOutcomeTag OutcomeTag { get; private set; }
         public DateTime? OutcomeTaggedAt { get; private set; }
+        public int MemoDesignIndex { get; private set; }
 
         private WorryCard(
             string id,
@@ -37,7 +38,8 @@ namespace SB.App.Domain
             WorryOutcomeTag outcomeTag = WorryOutcomeTag.Untagged,
             DateTime? outcomeTaggedAt = null,
             int probabilityPercent = 0,
-            string[] copingActions = null)
+            string[] copingActions = null,
+            int memoDesignIndex = -1)
         {
             Id = id;
             CreatedAt = createdAt;
@@ -54,22 +56,29 @@ namespace SB.App.Domain
             EmotionState = emotionState;
             OutcomeTag = outcomeTag;
             OutcomeTaggedAt = outcomeTaggedAt;
+            MemoDesignIndex = memoDesignIndex >= 0 ? memoDesignIndex : CreateMemoDesignIndex(id);
         }
 
         public static WorryCard FromDraft(WorryDraft draft)
         {
+            string id = Guid.NewGuid().ToString("N");
             return new WorryCard(
-                Guid.NewGuid().ToString("N"),
+                id,
                 DateTime.Now,
                 draft.WorryText,
                 draft.FactsText,
                 draft.AssumptionsText,
                 draft.EvidenceText,
                 draft.CounterEvidenceText,
-                draft.AlternativeThoughtText,
+                string.Empty,
                 draft.ActionPlan,
                 draft.Takeaway,
-                draft.EmotionState);
+                draft.EmotionState,
+                WorryOutcomeTag.Untagged,
+                null,
+                0,
+                null,
+                CreateMemoDesignIndex(id));
         }
 
         public static WorryCard Restore(
@@ -122,6 +131,43 @@ namespace SB.App.Domain
             int probabilityPercent,
             string[] copingActions)
         {
+            return Restore(
+                id,
+                createdAt,
+                worryText,
+                factsText,
+                assumptionsText,
+                evidenceText,
+                counterEvidenceText,
+                alternativeThoughtText,
+                actionPlan,
+                takeaway,
+                emotionState,
+                outcomeTag,
+                outcomeTaggedAt,
+                probabilityPercent,
+                copingActions,
+                -1);
+        }
+
+        public static WorryCard Restore(
+            string id,
+            DateTime createdAt,
+            string worryText,
+            string factsText,
+            string assumptionsText,
+            string evidenceText,
+            string counterEvidenceText,
+            string alternativeThoughtText,
+            string actionPlan,
+            string takeaway,
+            WorryEmotionState emotionState,
+            WorryOutcomeTag outcomeTag,
+            DateTime? outcomeTaggedAt,
+            int probabilityPercent,
+            string[] copingActions,
+            int memoDesignIndex)
+        {
             return new WorryCard(
                 id,
                 createdAt,
@@ -137,7 +183,8 @@ namespace SB.App.Domain
                 outcomeTag,
                 outcomeTaggedAt,
                 probabilityPercent,
-                copingActions);
+                copingActions,
+                memoDesignIndex);
         }
 
         public void TagOutcome(WorryOutcomeTag tag)
@@ -154,6 +201,21 @@ namespace SB.App.Domain
         private static string Normalize(string value)
         {
             return string.IsNullOrWhiteSpace(value) ? string.Empty : value.Trim();
+        }
+
+        private static int CreateMemoDesignIndex(string id)
+        {
+            if (string.IsNullOrEmpty(id))
+                return 0;
+
+            unchecked
+            {
+                int hash = 17;
+                for (int i = 0; i < id.Length; i++)
+                    hash = hash * 31 + id[i];
+
+                return hash & int.MaxValue;
+            }
         }
     }
 }

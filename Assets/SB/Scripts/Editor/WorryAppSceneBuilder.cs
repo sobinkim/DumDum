@@ -1,7 +1,8 @@
-using SB.App.Application;
+﻿using SB.App.Application;
 using SB.App.Domain;
 using SB.App.Views;
 using System.Collections.Generic;
+using System.Linq;
 using TMPro;
 using UnityEditor;
 using UnityEditor.SceneManagement;
@@ -17,9 +18,11 @@ namespace SB.App.Editor
         private const string StartScenePath = "Assets/SB/Scene/Start.unity";
         private const string MainScenePath = "Assets/SB/Scene/Main.unity";
         private const string FlowContentPath = "Assets/SB/ScriptableObjects/WorryFlowContent.asset";
+        private const string MemoDesignManagerPath = "Assets/SB/ScriptableObjects/WorryMemoDesignManager.asset";
+        private const string MemoCardArtFolder = "Assets/SB/02.Art/MemoCard";
         private const string NotificationCatalogPath = "Assets/SB/ScriptableObjects/NotificationCatalog.asset";
         private const string CardPrefabPath = "Assets/SB/03.Prefab/WorryCardView.prefab";
-        private const string KoreanFontAssetPath = "Assets/TextMesh Pro/Resources/Fonts & Materials/NotoSansKR-Regular SDF.asset";
+        private const string KoreanFontAssetPath = "Assets/TextMesh Pro/Resources/Fonts & Materials/Ownglyph_ParkDaHyun SDF.asset";
 
         private static TMP_FontAsset _koreanFont;
 
@@ -62,10 +65,10 @@ namespace SB.App.Editor
             TMP_Text title = CreateText(launchRoot, "DumDum", 42f, FontStyles.Bold, new Color(0.72f, 0.08f, 0.92f), TextAlignmentOptions.Center);
             AddLayout(title.gameObject, -1f, 64f);
 
-            TMP_Text subtitle = CreateText(launchRoot, "걱정을 생각의 흐름으로 정리해요.", 18f, FontStyles.Normal, TextColor, TextAlignmentOptions.Center);
+            TMP_Text subtitle = CreateText(launchRoot, "嫄깆젙???앷컖???먮쫫?쇰줈 ?뺣━?댁슂.", 18f, FontStyles.Normal, TextColor, TextAlignmentOptions.Center);
             AddLayout(subtitle.gameObject, -1f, 44f);
 
-            TMP_Text tapHint = CreateText(launchRoot, "화면을 터치해서 시작하기", 16f, FontStyles.Bold, new Color(0.46f, 0.23f, 0.72f), TextAlignmentOptions.Center);
+            TMP_Text tapHint = CreateText(launchRoot, "?붾㈃???곗튂?댁꽌 ?쒖옉?섍린", 16f, FontStyles.Bold, new Color(0.46f, 0.23f, 0.72f), TextAlignmentOptions.Center);
             AddLayout(tapHint.gameObject, -1f, 56f);
 
             LaunchScreenView launchView = launchRoot.gameObject.AddComponent<LaunchScreenView>();
@@ -74,6 +77,7 @@ namespace SB.App.Editor
             GameObject managersRoot = new GameObject("App Managers");
             managersRoot.AddComponent<AppSceneNavigator>();
             managersRoot.AddComponent<SoundManager>();
+            managersRoot.AddComponent<SoundSettingsInstaller>();
 
             GameObject presentersRoot = new GameObject("Presenters");
             LaunchScreenPresenter presenter = presentersRoot.AddComponent<LaunchScreenPresenter>();
@@ -96,8 +100,9 @@ namespace SB.App.Editor
             scene.name = "Main";
 
             WorryFlowContent content = CreateOrUpdateFlowContent();
+            WorryMemoDesignManager memoDesignManager = CreateOrUpdateMemoDesignManager();
             NotificationCatalog notificationCatalog = CreateOrUpdateNotificationCatalog();
-            WorryCardView cardPrefab = CreateOrUpdateCardPrefab();
+            WorryCardView cardPrefab = CreateOrUpdateCardPrefab(memoDesignManager);
 
             Canvas canvas = CreateCanvas();
             RectTransform screenBackground = CreateRect("Screen Background", canvas.transform);
@@ -123,11 +128,11 @@ namespace SB.App.Editor
             WorryInputView worryInputView = CreateTextStep<WorryInputView>(
                 shell,
                 "Worry Input View",
-                "고민 적기",
-                "지금 머릿속에 맴도는 걱정을 가능한 한 구체적으로 적어보세요.",
-                "다음",
-                "취소",
-                "예: 발표를 망칠까 봐 걱정돼요.");
+                "怨좊? ?곴린",
+                "吏湲?癒몃┸?띿뿉 留대룄??嫄깆젙??媛?ν븳 ??援ъ껜?곸쑝濡??곸뼱蹂댁꽭??",
+                "?ㅼ쓬",
+                "痍⑥냼",
+                "?? 諛쒗몴瑜?留앹튌源?遊?嫄깆젙?쇱슂.");
 
             FactCheckView factCheckView = CreateFactCheckStep(shell);
             ThoughtCheckView thoughtCheckView = CreateThoughtCheckStep(shell);
@@ -135,11 +140,11 @@ namespace SB.App.Editor
             TakeawaySummaryView takeawaySummaryView = CreateTextStep<TakeawaySummaryView>(
                 shell,
                 "Takeaway Summary View",
-                "한 줄로 정리하기",
-                "이번 정리를 다음의 내가 다시 볼 수 있게 짧게 남겨보세요.",
-                "다음",
-                "이전",
-                "예: 긴장되지만 준비할 수 있는 부분에 집중하자.");
+                "??以꾨줈 ?뺣━?섍린",
+                "?대쾲 ?뺣━瑜??ㅼ쓬???닿? ?ㅼ떆 蹂????덇쾶 吏㏐쾶 ?④꺼蹂댁꽭??",
+                "?ㅼ쓬",
+                "?댁쟾",
+                "?? 湲댁옣?섏?留?以鍮꾪븷 ???덈뒗 遺遺꾩뿉 吏묒쨷?섏옄.");
 
             EmotionCheckView emotionCheckView = CreateEmotionStep(shell);
             DailyClosureView dailyClosureView = CreateDailyClosure(shell);
@@ -222,12 +227,12 @@ namespace SB.App.Editor
                 8,
                 new[]
                 {
-                    Step(WorryFlowStep.WorryInput, "고민 적기", "먼저 걱정을 화이트보드 위에 꺼내볼게요.", "다음", "취소"),
-                    Step(WorryFlowStep.FactCheck, "사실과 추측 나누기", "불안을 바로 해결하려 하기 전에, 확실한 사실과 내가 붙인 해석을 나눠볼게요.", "다음", "이전"),
-                    Step(WorryFlowStep.ThoughtCheck, "생각 점검하기", "그 생각을 믿게 만드는 근거와 반대 근거를 함께 살펴봐요.", "다음", "이전"),
-                    Step(WorryFlowStep.ActionPlan, "지금 할 수 있는 행동 정하기", "생각을 붙잡고 있기보다 지금 할 수 있는 작고 분명한 행동을 정해요.", "다음", "이전"),
-                    Step(WorryFlowStep.TakeawaySummary, "한 줄로 정리하기", "오늘의 결론을 스스로에게 말하듯 한 줄로 남겨요.", "다음", "이전"),
-                    Step(WorryFlowStep.EmotionCheck, "마음 상태 확인하기", "생각을 정리한 뒤 지금 마음이 어떤지 표시해요.", "저장", "이전")
+                    Step(WorryFlowStep.WorryInput, "怨좊? ?곴린", "癒쇱? 嫄깆젙???붿씠?몃낫???꾩뿉 爰쇰궡蹂쇨쾶??", "?ㅼ쓬", "痍⑥냼"),
+                    Step(WorryFlowStep.FactCheck, "사실과 추측 나누기", "확실한 사실과 내가 붙인 해석을 나눠볼게요.", "다음", "이전"),
+                    Step(WorryFlowStep.ThoughtCheck, "?앷컖 ?먭??섍린", "洹??앷컖??誘욧쾶 留뚮뱶??洹쇨굅? 諛섎? 洹쇨굅瑜??④퍡 ?댄렣遊먯슂.", "?ㅼ쓬", "?댁쟾"),
+                    Step(WorryFlowStep.ActionPlan, "지금 할 수 있는 행동 정하기", "지금 할 수 있는 작고 분명한 행동을 정해요.", "다음", "이전"),
+                    Step(WorryFlowStep.TakeawaySummary, "??以꾨줈 ?뺣━?섍린", "?ㅻ뒛??寃곕줎???ㅼ뒪濡쒖뿉寃?留먰븯????以꾨줈 ?④꺼??", "?ㅼ쓬", "?댁쟾"),
+                    Step(WorryFlowStep.EmotionCheck, "마음 상태 확인하기", "정리한 뒤 지금 마음을 표시해요.", "저장", "이전")
                 });
 
             EditorUtility.SetDirty(content);
@@ -262,13 +267,44 @@ namespace SB.App.Editor
             return catalog;
         }
 
-        private static WorryCardView CreateOrUpdateCardPrefab()
+        private static WorryMemoDesignManager CreateOrUpdateMemoDesignManager()
+        {
+            WorryMemoDesignManager manager = AssetDatabase.LoadAssetAtPath<WorryMemoDesignManager>(MemoDesignManagerPath);
+            if (manager == null)
+            {
+                manager = ScriptableObject.CreateInstance<WorryMemoDesignManager>();
+                AssetDatabase.CreateAsset(manager, MemoDesignManagerPath);
+            }
+
+            List<Sprite> sprites = new List<Sprite>();
+            string[] guids = AssetDatabase.FindAssets("t:Texture2D", new[] { MemoCardArtFolder });
+            for (int i = 0; i < guids.Length; i++)
+            {
+                string path = AssetDatabase.GUIDToAssetPath(guids[i]);
+                Sprite[] slicedSprites = AssetDatabase.LoadAllAssetRepresentationsAtPath(path).OfType<Sprite>().ToArray();
+                if (slicedSprites.Length > 0)
+                {
+                    sprites.AddRange(slicedSprites);
+                    continue;
+                }
+
+                Sprite sprite = AssetDatabase.LoadAssetAtPath<Sprite>(path);
+                if (sprite != null)
+                    sprites.Add(sprite);
+            }
+
+            manager.SetMemoSprites(sprites.ToArray());
+            EditorUtility.SetDirty(manager);
+            return manager;
+        }
+
+        private static WorryCardView CreateOrUpdateCardPrefab(WorryMemoDesignManager memoDesignManager)
         {
             GameObject prefabRoot = new GameObject("WorryCardView");
             RectTransform root = prefabRoot.AddComponent<RectTransform>();
             root.sizeDelta = new Vector2(150f, 150f);
 
-            WorryCardView view = CreateCardTemplate(root);
+            WorryCardView view = CreateCardTemplate(root, memoDesignManager);
             PrefabUtility.SaveAsPrefabAsset(prefabRoot, CardPrefabPath);
             Object.DestroyImmediate(prefabRoot);
 
@@ -304,7 +340,7 @@ namespace SB.App.Editor
             HorizontalLayoutGroup layout = root.gameObject.AddComponent<HorizontalLayoutGroup>();
             layout.childAlignment = TextAnchor.MiddleRight;
 
-            Button startButton = CreateButton(root, "고민 정리 시작", PrimaryColor, Color.white, 170f, 48f);
+            Button startButton = CreateButton(root, "怨좊? ?뺣━ ?쒖옉", PrimaryColor, Color.white, 170f, 48f);
 
             MainMenuView view = root.gameObject.AddComponent<MainMenuView>();
             view.SetRoot(root.gameObject);
@@ -322,16 +358,16 @@ namespace SB.App.Editor
             RectTransform header = CreateRect("Whiteboard Header", root);
             Anchor(header, new Vector2(0f, 1f), new Vector2(1f, 1f), new Vector2(20f, -112f), new Vector2(-20f, -16f));
 
-            TMP_Text title = CreateText(header, "내 걱정 정리함 ✨", 29f, FontStyles.Normal, new Color(0.72f, 0.08f, 0.92f), TextAlignmentOptions.Left);
+            TMP_Text title = CreateText(header, "내 걱정 정리함", 29f, FontStyles.Normal, new Color(0.72f, 0.08f, 0.92f), TextAlignmentOptions.Left);
             Anchor(title.rectTransform, Vector2.zero, Vector2.one, Vector2.zero, new Vector2(-132f, 0f));
 
-            Button soundButton = CreateButton(header, "소리", new Color(0.97f, 0.91f, 1f), new Color(0.72f, 0.08f, 0.92f), 54f, 54f);
+            Button soundButton = CreateButton(header, "?뚮━", new Color(0.97f, 0.91f, 1f), new Color(0.72f, 0.08f, 0.92f), 54f, 54f);
             Anchor(soundButton.GetComponent<RectTransform>(), new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(-116f, -66f), new Vector2(-62f, -12f));
             Outline soundOutline = soundButton.gameObject.AddComponent<Outline>();
             soundOutline.effectColor = new Color(0.84f, 0.66f, 0.98f, 0.55f);
             soundOutline.effectDistance = new Vector2(1.5f, -1.5f);
 
-            Button summaryButton = CreateButton(header, "통계", new Color(0.97f, 0.91f, 1f), new Color(0.72f, 0.08f, 0.92f), 54f, 54f);
+            Button summaryButton = CreateButton(header, "?듦퀎", new Color(0.97f, 0.91f, 1f), new Color(0.72f, 0.08f, 0.92f), 54f, 54f);
             Anchor(summaryButton.GetComponent<RectTransform>(), new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(-54f, -66f), new Vector2(0f, -12f));
             Outline summaryOutline = summaryButton.gameObject.AddComponent<Outline>();
             summaryOutline.effectColor = new Color(0.84f, 0.66f, 0.98f, 0.55f);
@@ -369,13 +405,13 @@ namespace SB.App.Editor
             scroll.viewport = viewport;
             scroll.content = content;
 
-            TMP_Text emptyState = CreateText(content, "아직 고민 카드가 없어요.\n걱정 하나를 행동 계획으로 바꿔보세요.", 18f, FontStyles.Normal, MutedTextColor, TextAlignmentOptions.Center);
+            TMP_Text emptyState = CreateText(content, "?꾩쭅 怨좊? 移대뱶媛 ?놁뼱??\n嫄깆젙 ?섎굹瑜??됰룞 怨꾪쉷?쇰줈 諛붽퓭蹂댁꽭??", 18f, FontStyles.Normal, MutedTextColor, TextAlignmentOptions.Center);
             AddLayout(emptyState.gameObject, -1f, 74f);
 
             RectTransform cardRoot = CreateRect("Card Grid", content);
             GridLayoutGroup cardGrid = cardRoot.gameObject.AddComponent<GridLayoutGroup>();
             cardGrid.cellSize = new Vector2(150f, 176f);
-            cardGrid.spacing = new Vector2(15f, 34f);
+            cardGrid.spacing = new Vector2(15f, 15f);
             cardGrid.padding = new RectOffset(8, 8, 10, 20);
             cardGrid.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
             cardGrid.constraintCount = 2;
@@ -385,12 +421,12 @@ namespace SB.App.Editor
             gridFitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
             AddLayout(cardRoot.gameObject, -1f, 0f);
 
-            Button createButton = CreateButton(content, "+  새로운 걱정 정리하기", new Color(0.99f, 0.96f, 1f), new Color(0.72f, 0.08f, 0.92f), -1f, 58f);
+            Button createButton = CreateButton(content, "+  ?덈줈??嫄깆젙 ?뺣━?섍린", new Color(0.99f, 0.96f, 1f), new Color(0.72f, 0.08f, 0.92f), -1f, 58f);
             Outline createOutline = createButton.gameObject.AddComponent<Outline>();
             createOutline.effectColor = new Color(0.78f, 0.42f, 0.96f, 0.55f);
             createOutline.effectDistance = new Vector2(1.2f, -1.2f);
 
-            Button dailyCloseButton = CreateButton(root, "🌙 오늘 하루 마무리", new Color(0.98f, 0.96f, 1f), new Color(0.46f, 0.23f, 0.72f), -1f, 52f);
+            Button dailyCloseButton = CreateButton(root, "오늘 하루 마무리", new Color(0.98f, 0.96f, 1f), new Color(0.46f, 0.23f, 0.72f), -1f, 52f);
             RectTransform dailyCloseRect = dailyCloseButton.GetComponent<RectTransform>();
             Anchor(dailyCloseRect, new Vector2(0f, 0f), new Vector2(1f, 0f), new Vector2(44f, 28f), new Vector2(-44f, 80f));
             Outline dailyCloseOutline = dailyCloseButton.gameObject.AddComponent<Outline>();
@@ -409,64 +445,10 @@ namespace SB.App.Editor
 
         private static SoundSettingsPanelView CreateSoundSettings(RectTransform parent, Button openButton)
         {
-            RectTransform controller = CreateRect("Sound Settings View", parent);
-            Stretch(controller);
-
-            RectTransform overlay = CreateRect("Sound Settings Panel", controller);
-            Stretch(overlay);
-            AddImage(overlay.gameObject, new Color(0.08f, 0.08f, 0.1f, 0.36f), true);
-
-            RectTransform panel = CreateRect("Panel", overlay);
-            Anchor(panel, new Vector2(0f, 0.5f), new Vector2(1f, 0.5f), new Vector2(24f, -138f), new Vector2(-24f, 138f));
-            AddImage(panel.gameObject, new Color(0.99f, 0.97f, 1f), true);
-
-            VerticalLayoutGroup panelLayout = panel.gameObject.AddComponent<VerticalLayoutGroup>();
-            panelLayout.padding = new RectOffset(20, 20, 18, 18);
-            panelLayout.spacing = 14f;
-            panelLayout.childControlHeight = false;
-            panelLayout.childControlWidth = true;
-
-            RectTransform header = CreateRect("Sound Header", panel);
-            HorizontalLayoutGroup headerLayout = header.gameObject.AddComponent<HorizontalLayoutGroup>();
-            headerLayout.spacing = 10f;
-            headerLayout.childControlHeight = false;
-            headerLayout.childControlWidth = true;
-            headerLayout.childForceExpandWidth = false;
-            headerLayout.childAlignment = TextAnchor.MiddleCenter;
-            AddLayout(header.gameObject, -1f, 42f);
-
-            TMP_Text title = CreateText(header, "사운드 설정", 22f, FontStyles.Bold, TextColor, TextAlignmentOptions.Left);
-            AddLayout(title.gameObject, -1f, 42f);
-            Button closeButton = CreateButton(header, "닫기", SecondaryColor, TextColor, 72f, 38f);
-
-            RectTransform volumeRow = CreateRect("Volume Row", panel);
-            HorizontalLayoutGroup volumeRowLayout = volumeRow.gameObject.AddComponent<HorizontalLayoutGroup>();
-            volumeRowLayout.spacing = 10f;
-            volumeRowLayout.childControlHeight = false;
-            volumeRowLayout.childControlWidth = true;
-            volumeRowLayout.childForceExpandWidth = false;
-            volumeRowLayout.childAlignment = TextAnchor.MiddleCenter;
-            AddLayout(volumeRow.gameObject, -1f, 30f);
-
-            TMP_Text volumeLabel = CreateText(volumeRow, "전체 소리", 16f, FontStyles.Bold, TextColor, TextAlignmentOptions.Left);
-            AddLayout(volumeLabel.gameObject, -1f, 30f);
-            TMP_Text volumeValue = CreateText(volumeRow, "80%", 16f, FontStyles.Bold, new Color(0.72f, 0.08f, 0.92f), TextAlignmentOptions.Right);
-            AddLayout(volumeValue.gameObject, 58f, 30f);
-
-            Slider slider = CreateSlider(panel);
-            slider.minValue = 0f;
-            slider.maxValue = 1f;
-            slider.wholeNumbers = false;
-            slider.value = 0.8f;
-
-            Button muteButton = CreateButton(panel, "음소거", PrimaryColor, Color.white, -1f, 46f);
-            TMP_Text muteLabel = muteButton.GetComponentInChildren<TMP_Text>(true);
-
-            SoundSettingsPanelView view = controller.gameObject.AddComponent<SoundSettingsPanelView>();
-            view.SetControls(overlay.gameObject, openButton, closeButton, muteButton, slider, volumeValue, muteLabel);
-            overlay.gameObject.SetActive(false);
-            EditorUtility.SetDirty(view);
-            return view;
+            SoundSettingsPanelView toggleView = openButton.gameObject.AddComponent<SoundSettingsPanelView>();
+            toggleView.SetControls(openButton);
+            EditorUtility.SetDirty(toggleView);
+            return toggleView;
         }
 
         private static OutcomeSummaryView CreateOutcomeSummary(RectTransform parent)
@@ -490,12 +472,12 @@ namespace SB.App.Editor
             headerLayout.childAlignment = TextAnchor.MiddleCenter;
             AddLayout(header.gameObject, -1f, 44f);
 
-            TMP_Text title = CreateText(header, "걱정 통계", 24f, FontStyles.Bold, TextColor, TextAlignmentOptions.Left);
+            TMP_Text title = CreateText(header, "嫄깆젙 ?듦퀎", 24f, FontStyles.Bold, TextColor, TextAlignmentOptions.Left);
             AddLayout(title.gameObject, -1f, 40f);
 
             Button closeButton = CreateButton(header, "돌아가기", SecondaryColor, TextColor, 92f, 36f);
 
-            TMP_Text reviewed = CreateText(root, "아직 고민 카드가 없어요.", 15f, FontStyles.Normal, MutedTextColor, TextAlignmentOptions.Center);
+            TMP_Text reviewed = CreateText(root, "?꾩쭅 怨좊? 移대뱶媛 ?놁뼱??", 15f, FontStyles.Normal, MutedTextColor, TextAlignmentOptions.Center);
             AddLayout(reviewed.gameObject, -1f, 40f);
 
             RectTransform metrics = CreateRect("Outcome Metrics", root);
@@ -508,11 +490,11 @@ namespace SB.App.Editor
 
             TMP_Text didNotHappenPercent;
             TMP_Text didNotHappenCount;
-            CreateOutcomeMetric(metrics, "일어나지 않음", PrimaryColor, out didNotHappenPercent, out didNotHappenCount);
+            CreateOutcomeMetric(metrics, "?쇱뼱?섏? ?딆쓬", PrimaryColor, out didNotHappenPercent, out didNotHappenCount);
 
             TMP_Text partiallyHappenedPercent;
             TMP_Text partiallyHappenedCount;
-            CreateOutcomeMetric(metrics, "일부만 일어남", AccentColor, out partiallyHappenedPercent, out partiallyHappenedCount);
+            CreateOutcomeMetric(metrics, "일부만", AccentColor, out partiallyHappenedPercent, out partiallyHappenedCount);
 
             TMP_Text happenedPercent;
             TMP_Text happenedCount;
@@ -559,7 +541,7 @@ namespace SB.App.Editor
             AddLayout(countText.gameObject, -1f, 16f);
         }
 
-        private static WorryCardView CreateCardTemplate(RectTransform root)
+        private static WorryCardView CreateCardTemplate(RectTransform root, WorryMemoDesignManager memoDesignManager)
         {
             Image background = AddImage(root.gameObject, new Color(0.97f, 0.91f, 1f), true);
             Outline outline = root.gameObject.AddComponent<Outline>();
@@ -593,18 +575,18 @@ namespace SB.App.Editor
             rowLayout.childAlignment = TextAnchor.MiddleCenter;
             AddLayout(row.gameObject, -1f, 26f);
 
-            TMP_Text emotion = CreateText(row, "🙂", 20f, FontStyles.Normal, TextColor, TextAlignmentOptions.Left);
+            TMP_Text emotion = CreateText(row, "?셽", 20f, FontStyles.Normal, TextColor, TextAlignmentOptions.Left);
             AddLayout(emotion.gameObject, 34f, 24f);
 
             TMP_Text date = CreateText(row, "6월 5일", 11f, FontStyles.Bold, MutedTextColor, TextAlignmentOptions.Right);
             AddLayout(date.gameObject, -1f, 24f);
 
-            TMP_Text worry = CreateText(content, "발표에서 실수하면 어떡하지?", 15f, FontStyles.Bold, TextColor, TextAlignmentOptions.TopLeft);
+            TMP_Text worry = CreateText(content, "諛쒗몴?먯꽌 ?ㅼ닔?섎㈃ ?대뼞?섏??", 15f, FontStyles.Bold, TextColor, TextAlignmentOptions.TopLeft);
             worry.overflowMode = TextOverflowModes.Ellipsis;
             worry.maxVisibleLines = 3;
             AddLayout(worry.gameObject, -1f, 58f);
 
-            TMP_Text action = CreateText(content, "\"준비하면 괜찮을 거야\"", 11f, FontStyles.Normal, MutedTextColor, TextAlignmentOptions.TopLeft);
+            TMP_Text action = CreateText(content, "\"以鍮꾪븯硫?愿쒖갖??嫄곗빞\"", 11f, FontStyles.Normal, MutedTextColor, TextAlignmentOptions.TopLeft);
             action.overflowMode = TextOverflowModes.Ellipsis;
             action.maxVisibleLines = 2;
             AddLayout(action.gameObject, -1f, 32f);
@@ -613,7 +595,7 @@ namespace SB.App.Editor
             AddLayout(outcome.gameObject, -1f, 16f);
 
             WorryCardView view = root.gameObject.AddComponent<WorryCardView>();
-            view.SetControls(emotion, date, worry, action, outcome, button, background, outline);
+            view.SetControls(emotion, date, worry, action, outcome, button, background, outline, memoDesignManager);
             EditorUtility.SetDirty(view);
             return view;
         }
@@ -647,19 +629,19 @@ namespace SB.App.Editor
         {
             RectTransform root = CreateStepPanel(parent, "Fact Check View");
             TMP_Text titleText = CreateText(root, "사실과 추측 나누기", 24f, FontStyles.Bold, TextColor, TextAlignmentOptions.Left);
-            TMP_Text helperText = CreateText(root, "지금 확실히 알고 있는 것과 내가 상상하고 있는 것을 분리해요.", 15f, FontStyles.Normal, MutedTextColor, TextAlignmentOptions.Left);
+            TMP_Text helperText = CreateText(root, "吏湲??뺤떎???뚭퀬 ?덈뒗 寃껉낵 ?닿? ?곸긽?섍퀬 ?덈뒗 寃껋쓣 遺꾨━?댁슂.", 15f, FontStyles.Normal, MutedTextColor, TextAlignmentOptions.Left);
 
-            TMP_Text factsLabel = CreateText(root, "확실한 사실", 14f, FontStyles.Bold, PrimaryColor, TextAlignmentOptions.Left);
+            TMP_Text factsLabel = CreateText(root, "?뺤떎???ъ떎", 14f, FontStyles.Bold, PrimaryColor, TextAlignmentOptions.Left);
             AddLayout(factsLabel.gameObject, -1f, 20f);
-            TMP_InputField factsInput = CreateInput(root, "예: 내일 발표가 있다.", 78f);
+            TMP_InputField factsInput = CreateInput(root, "?? ?댁씪 諛쒗몴媛 ?덈떎.", 78f);
 
-            TMP_Text assumptionsLabel = CreateText(root, "내가 추측하는 것", 14f, FontStyles.Bold, PrimaryColor, TextAlignmentOptions.Left);
+            TMP_Text assumptionsLabel = CreateText(root, "내가 추측한 것", 14f, FontStyles.Bold, PrimaryColor, TextAlignmentOptions.Left);
             AddLayout(assumptionsLabel.gameObject, -1f, 20f);
-            TMP_InputField assumptionsInput = CreateInput(root, "예: 발표를 망칠 것 같다.", 78f);
+            TMP_InputField assumptionsInput = CreateInput(root, "?? 諛쒗몴瑜?留앹튌 寃?媛숇떎.", 78f);
 
             RectTransform buttonRow = CreateButtonRow(root);
-            Button backButton = CreateButton(buttonRow, "이전", SecondaryColor, TextColor, 92f, 42f);
-            Button submitButton = CreateButton(buttonRow, "다음", PrimaryColor, Color.white, 112f, 42f);
+            Button backButton = CreateButton(buttonRow, "?댁쟾", SecondaryColor, TextColor, 92f, 42f);
+            Button submitButton = CreateButton(buttonRow, "?ㅼ쓬", PrimaryColor, Color.white, 112f, 42f);
 
             FactCheckView view = root.gameObject.AddComponent<FactCheckView>();
             view.SetRoot(root.gameObject);
@@ -672,29 +654,25 @@ namespace SB.App.Editor
         private static ThoughtCheckView CreateThoughtCheckStep(RectTransform parent)
         {
             RectTransform root = CreateStepPanel(parent, "Thought Check View");
-            TMP_Text titleText = CreateText(root, "생각 점검하기", 24f, FontStyles.Bold, TextColor, TextAlignmentOptions.Left);
-            TMP_Text helperText = CreateText(root, "생각을 없애려 하지 말고, 어느 정도 사실에 기대고 있는지 확인해요.", 15f, FontStyles.Normal, MutedTextColor, TextAlignmentOptions.Left);
+            TMP_Text titleText = CreateText(root, "?앷컖 ?먭??섍린", 24f, FontStyles.Bold, TextColor, TextAlignmentOptions.Left);
+            TMP_Text helperText = CreateText(root, "?앷컖???놁븷???섏? 留먭퀬, ?대뒓 ?뺣룄 ?ъ떎??湲곕?怨??덈뒗吏 ?뺤씤?댁슂.", 15f, FontStyles.Normal, MutedTextColor, TextAlignmentOptions.Left);
 
-            TMP_Text evidenceLabel = CreateText(root, "그렇게 생각하는 근거", 14f, FontStyles.Bold, PrimaryColor, TextAlignmentOptions.Left);
+            TMP_Text evidenceLabel = CreateText(root, "洹몃젃寃??앷컖?섎뒗 洹쇨굅", 14f, FontStyles.Bold, PrimaryColor, TextAlignmentOptions.Left);
             AddLayout(evidenceLabel.gameObject, -1f, 20f);
-            TMP_InputField evidenceInput = CreateInput(root, "예: 지난번에도 긴장해서 말을 더듬었다.", 58f);
+            TMP_InputField evidenceInput = CreateInput(root, "?? 吏?쒕쾲?먮룄 湲댁옣?댁꽌 留먯쓣 ?붾벉?덈떎.", 58f);
 
-            TMP_Text counterLabel = CreateText(root, "반대 근거", 14f, FontStyles.Bold, PrimaryColor, TextAlignmentOptions.Left);
+            TMP_Text counterLabel = CreateText(root, "諛섎? 洹쇨굅", 14f, FontStyles.Bold, PrimaryColor, TextAlignmentOptions.Left);
             AddLayout(counterLabel.gameObject, -1f, 20f);
-            TMP_InputField counterInput = CreateInput(root, "예: 연습한 내용은 기억하고 있다.", 58f);
-
-            TMP_Text alternativeLabel = CreateText(root, "다른 해석", 14f, FontStyles.Bold, PrimaryColor, TextAlignmentOptions.Left);
-            AddLayout(alternativeLabel.gameObject, -1f, 20f);
-            TMP_InputField alternativeInput = CreateInput(root, "예: 긴장해도 발표를 끝낼 수는 있다.", 58f);
+            TMP_InputField counterInput = CreateInput(root, "?? ?곗뒿???댁슜? 湲곗뼲?섍퀬 ?덈떎.", 58f);
 
             RectTransform buttonRow = CreateButtonRow(root);
-            Button backButton = CreateButton(buttonRow, "이전", SecondaryColor, TextColor, 92f, 42f);
-            Button submitButton = CreateButton(buttonRow, "다음", PrimaryColor, Color.white, 112f, 42f);
+            Button backButton = CreateButton(buttonRow, "?댁쟾", SecondaryColor, TextColor, 92f, 42f);
+            Button submitButton = CreateButton(buttonRow, "?ㅼ쓬", PrimaryColor, Color.white, 112f, 42f);
 
             ThoughtCheckView view = root.gameObject.AddComponent<ThoughtCheckView>();
             view.SetRoot(root.gameObject);
             view.SetPromptTexts(titleText, helperText);
-            view.SetControls(evidenceInput, counterInput, alternativeInput, submitButton, backButton);
+            view.SetControls(evidenceInput, counterInput, submitButton, backButton);
             EditorUtility.SetDirty(view);
             return view;
         }
@@ -703,16 +681,16 @@ namespace SB.App.Editor
         {
             RectTransform root = CreateStepPanel(parent, "Action Plan View");
             TMP_Text titleText = CreateText(root, "지금 할 수 있는 행동 정하기", 24f, FontStyles.Bold, TextColor, TextAlignmentOptions.Left);
-            TMP_Text helperText = CreateText(root, "막연한 안심보다 작고 분명한 행동 하나가 생각을 안정시켜줘요.", 15f, FontStyles.Normal, MutedTextColor, TextAlignmentOptions.Left);
+            TMP_Text helperText = CreateText(root, "留됱뿰???덉떖蹂대떎 ?묎퀬 遺꾨챸???됰룞 ?섎굹媛 ?앷컖???덉젙?쒖폒以섏슂.", 15f, FontStyles.Normal, MutedTextColor, TextAlignmentOptions.Left);
 
-            TMP_Text actionLabel = CreateText(root, "✨ 지금 할 수 있는 것", 14f, FontStyles.Bold, PrimaryColor, TextAlignmentOptions.Left);
+            TMP_Text actionLabel = CreateText(root, "지금 할 수 있는 것", 14f, FontStyles.Bold, PrimaryColor, TextAlignmentOptions.Left);
             AddLayout(actionLabel.gameObject, -1f, 22f);
 
-            TMP_InputField actionInput = CreateInput(root, "지금 당장 실천할 수 있는 것은?", 142f);
+            TMP_InputField actionInput = CreateInput(root, "吏湲??뱀옣 ?ㅼ쿇?????덈뒗 寃껋??", 142f);
 
             RectTransform buttonRow = CreateButtonRow(root);
-            Button backButton = CreateButton(buttonRow, "이전", SecondaryColor, TextColor, 92f, 42f);
-            Button submitButton = CreateButton(buttonRow, "다음", PrimaryColor, Color.white, 112f, 42f);
+            Button backButton = CreateButton(buttonRow, "?댁쟾", SecondaryColor, TextColor, 92f, 42f);
+            Button submitButton = CreateButton(buttonRow, "?ㅼ쓬", PrimaryColor, Color.white, 112f, 42f);
 
             ActionPlanView view = root.gameObject.AddComponent<ActionPlanView>();
             view.SetRoot(root.gameObject);
@@ -725,15 +703,15 @@ namespace SB.App.Editor
         private static EmotionCheckView CreateEmotionStep(RectTransform parent)
         {
             RectTransform root = CreateStepPanel(parent, "Emotion Check View");
-            TMP_Text title = CreateText(root, "지금 마음은 어떤가요?", 24f, FontStyles.Bold, TextColor, TextAlignmentOptions.Left);
-            TMP_Text helper = CreateText(root, "현재 마음 상태를 고르면 카드에 함께 기록돼요.", 15f, FontStyles.Normal, MutedTextColor, TextAlignmentOptions.Left);
+            TMP_Text title = CreateText(root, "吏湲?留덉쓬? ?대뼡媛??", 24f, FontStyles.Bold, TextColor, TextAlignmentOptions.Left);
+            TMP_Text helper = CreateText(root, "?꾩옱 留덉쓬 ?곹깭瑜?怨좊Ⅴ硫?移대뱶???④퍡 湲곕줉?쇱슂.", 15f, FontStyles.Normal, MutedTextColor, TextAlignmentOptions.Left);
 
             Button distressed = CreateButton(root, "아직 심란함", SecondaryColor, TextColor, -1f, 44f);
             Button relieved = CreateButton(root, "조금 편해짐", SecondaryColor, TextColor, -1f, 44f);
             Button calm = CreateButton(root, "이제 괜찮음", SecondaryColor, TextColor, -1f, 44f);
 
             RectTransform buttonRow = CreateButtonRow(root);
-            Button backButton = CreateButton(buttonRow, "이전", SecondaryColor, TextColor, 92f, 42f);
+            Button backButton = CreateButton(buttonRow, "?댁쟾", SecondaryColor, TextColor, 92f, 42f);
 
             EmotionCheckView view = root.gameObject.AddComponent<EmotionCheckView>();
             view.SetRoot(root.gameObject);
@@ -755,20 +733,20 @@ namespace SB.App.Editor
             layout.childControlHeight = false;
             layout.childControlWidth = true;
 
-            TMP_Text worry = CreateText(root, "고민", 23f, FontStyles.Bold, TextColor, TextAlignmentOptions.Left);
-            TMP_Text probability = CreateText(root, "사실 / 추측", 16f, FontStyles.Bold, PrimaryColor, TextAlignmentOptions.Left);
-            TMP_Text coping = CreateText(root, "생각 점검", 15f, FontStyles.Normal, TextColor, TextAlignmentOptions.Left);
-            TMP_Text action = CreateText(root, "행동 / 한 줄 정리", 15f, FontStyles.Normal, TextColor, TextAlignmentOptions.Left);
-            TMP_Text emotion = CreateText(root, "감정", 13f, FontStyles.Normal, MutedTextColor, TextAlignmentOptions.Left);
-            TMP_Text outcome = CreateText(root, "결과", 13f, FontStyles.Normal, MutedTextColor, TextAlignmentOptions.Left);
+            TMP_Text worry = CreateText(root, "怨좊?", 23f, FontStyles.Bold, TextColor, TextAlignmentOptions.Left);
+            TMP_Text probability = CreateText(root, "?ъ떎 / 異붿륫", 16f, FontStyles.Bold, PrimaryColor, TextAlignmentOptions.Left);
+            TMP_Text coping = CreateText(root, "?앷컖 ?먭?", 15f, FontStyles.Normal, TextColor, TextAlignmentOptions.Left);
+            TMP_Text action = CreateText(root, "?됰룞 / ??以??뺣━", 15f, FontStyles.Normal, TextColor, TextAlignmentOptions.Left);
+            TMP_Text emotion = CreateText(root, "媛먯젙", 13f, FontStyles.Normal, MutedTextColor, TextAlignmentOptions.Left);
+            TMP_Text outcome = CreateText(root, "寃곌낵", 13f, FontStyles.Normal, MutedTextColor, TextAlignmentOptions.Left);
 
             RectTransform outcomeRow = CreateButtonRow(root);
-            Button didNotHappen = CreateButton(outcomeRow, "일어나지 않음", SecondaryColor, TextColor, 118f, 40f);
+            Button didNotHappen = CreateButton(outcomeRow, "?쇱뼱?섏? ?딆쓬", SecondaryColor, TextColor, 118f, 40f);
             Button partial = CreateButton(outcomeRow, "일부만", SecondaryColor, TextColor, 64f, 40f);
             Button happened = CreateButton(outcomeRow, "일어남", AccentColor, TextColor, 68f, 40f);
 
             RectTransform closeRow = CreateButtonRow(root);
-            Button close = CreateButton(closeRow, "닫기", PrimaryColor, Color.white, 96f, 40f);
+            Button close = CreateButton(closeRow, "?リ린", PrimaryColor, Color.white, 96f, 40f);
 
             WorryDetailView view = root.gameObject.AddComponent<WorryDetailView>();
             view.SetRoot(root.gameObject);
@@ -798,7 +776,7 @@ namespace SB.App.Editor
             VerticalLayoutGroup layout = root.gameObject.AddComponent<VerticalLayoutGroup>();
             layout.spacing = 4f;
 
-            TMP_Text label = CreateText(root, "단계", 13f, FontStyles.Bold, Color.white, TextAlignmentOptions.Center);
+            TMP_Text label = CreateText(root, "?④퀎", 13f, FontStyles.Bold, Color.white, TextAlignmentOptions.Center);
             Slider slider = CreateSlider(root);
             slider.interactable = false;
 
@@ -818,7 +796,7 @@ namespace SB.App.Editor
             VerticalLayoutGroup layout = root.gameObject.AddComponent<VerticalLayoutGroup>();
             layout.padding = new RectOffset(14, 14, 12, 12);
 
-            TMP_Text message = CreateText(root, "메시지", 14f, FontStyles.Normal, TextColor, TextAlignmentOptions.Left);
+            TMP_Text message = CreateText(root, "硫붿떆吏", 14f, FontStyles.Normal, TextColor, TextAlignmentOptions.Left);
 
             CompanionBubbleView view = root.gameObject.AddComponent<CompanionBubbleView>();
             view.SetRoot(root.gameObject);
@@ -839,8 +817,8 @@ namespace SB.App.Editor
             layout.childControlWidth = true;
             layout.childAlignment = TextAnchor.MiddleCenter;
 
-            TMP_Text message = CreateText(root, "안내", 14f, FontStyles.Normal, Color.white, TextAlignmentOptions.Left);
-            Button close = CreateButton(root, "확인", PrimaryColor, Color.white, 64f, 36f);
+            TMP_Text message = CreateText(root, "?덈궡", 14f, FontStyles.Normal, Color.white, TextAlignmentOptions.Left);
+            Button close = CreateButton(root, "?뺤씤", PrimaryColor, Color.white, 64f, 36f);
 
             FeedbackPopupView view = root.gameObject.AddComponent<FeedbackPopupView>();
             view.SetRoot(root.gameObject);
@@ -862,7 +840,7 @@ namespace SB.App.Editor
             layout.childControlWidth = true;
             layout.childAlignment = TextAnchor.MiddleCenter;
 
-            TMP_Text message = CreateText(root, "잘 생각했어요.\n아직 많은 고민과 불안이 남아 있겠지만,\n오늘은 여기까지 하고 지금 이 순간에 집중해 봐요.", 19f, FontStyles.Normal, Color.white, TextAlignmentOptions.Center);
+            TMP_Text message = CreateText(root, "???앷컖?덉뼱??\n?꾩쭅 留롮? 怨좊?怨?遺덉븞???⑥븘 ?덇쿋吏留?\n?ㅻ뒛? ?ш린源뚯? ?섍퀬 吏湲????쒓컙??吏묒쨷??遊먯슂.", 19f, FontStyles.Normal, Color.white, TextAlignmentOptions.Center);
             AddLayout(message.gameObject, -1f, 180f);
 
             DailyClosureView view = root.gameObject.AddComponent<DailyClosureView>();
