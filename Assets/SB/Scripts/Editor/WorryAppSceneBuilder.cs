@@ -129,10 +129,17 @@ namespace SB.App.Editor
                 "취소",
                 "예: 발표를 망칠까 봐 걱정돼요.");
 
-            ProbabilityEstimateView probabilityEstimateView = CreateProbabilityStep(shell);
-
-            CopingPlanView copingPlanView = CreateCopingActionsStep(shell);
+            FactCheckView factCheckView = CreateFactCheckStep(shell);
+            ThoughtCheckView thoughtCheckView = CreateThoughtCheckStep(shell);
             ActionPlanView actionPlanView = CreateSummaryStep(shell);
+            TakeawaySummaryView takeawaySummaryView = CreateTextStep<TakeawaySummaryView>(
+                shell,
+                "Takeaway Summary View",
+                "한 줄로 정리하기",
+                "이번 정리를 다음의 내가 다시 볼 수 있게 짧게 남겨보세요.",
+                "다음",
+                "이전",
+                "예: 긴장되지만 준비할 수 있는 부분에 집중하자.");
 
             EmotionCheckView emotionCheckView = CreateEmotionStep(shell);
             DailyClosureView dailyClosureView = CreateDailyClosure(shell);
@@ -155,9 +162,10 @@ namespace SB.App.Editor
                 feedbackPopupView,
                 progressView,
                 worryInputView,
-                probabilityEstimateView,
-                copingPlanView,
+                factCheckView,
+                thoughtCheckView,
                 actionPlanView,
+                takeawaySummaryView,
                 emotionCheckView,
                 dailyClosureView,
                 notificationCatalog);
@@ -215,9 +223,10 @@ namespace SB.App.Editor
                 new[]
                 {
                     Step(WorryFlowStep.WorryInput, "고민 적기", "먼저 걱정을 화이트보드 위에 꺼내볼게요.", "다음", "취소"),
-                    Step(WorryFlowStep.ProbabilityEstimate, "확률 가늠하기", "이 걱정이 실제로 일어날 것 같은 정도를 숫자로 잡아봐요.", "다음", "이전"),
-                    Step(WorryFlowStep.CopingPlan, "최악의 경우 대비하기", "정말 일어난다면 그때 할 수 있는 일을 여러 개 적어봐요.", "다음", "이전"),
-                    Step(WorryFlowStep.ActionPlan, "지금 할 수 있는 행동 정하기", "통제 가능한 작은 행동 하나를 정해요.", "다음", "이전"),
+                    Step(WorryFlowStep.FactCheck, "사실과 추측 나누기", "불안을 바로 해결하려 하기 전에, 확실한 사실과 내가 붙인 해석을 나눠볼게요.", "다음", "이전"),
+                    Step(WorryFlowStep.ThoughtCheck, "생각 점검하기", "그 생각을 믿게 만드는 근거와 반대 근거를 함께 살펴봐요.", "다음", "이전"),
+                    Step(WorryFlowStep.ActionPlan, "지금 할 수 있는 행동 정하기", "생각을 붙잡고 있기보다 지금 할 수 있는 작고 분명한 행동을 정해요.", "다음", "이전"),
+                    Step(WorryFlowStep.TakeawaySummary, "한 줄로 정리하기", "오늘의 결론을 스스로에게 말하듯 한 줄로 남겨요.", "다음", "이전"),
                     Step(WorryFlowStep.EmotionCheck, "마음 상태 확인하기", "생각을 정리한 뒤 지금 마음이 어떤지 표시해요.", "저장", "이전")
                 });
 
@@ -634,25 +643,58 @@ namespace SB.App.Editor
             return view;
         }
 
-        private static CopingPlanView CreateCopingActionsStep(RectTransform parent)
+        private static FactCheckView CreateFactCheckStep(RectTransform parent)
         {
-            RectTransform root = CreateStepPanel(parent, "Coping Plan View");
-            TMP_Text titleText = CreateText(root, "최악의 경우 대비하기", 24f, FontStyles.Bold, TextColor, TextAlignmentOptions.Left);
-            TMP_Text helperText = CreateText(root, "만약 정말 일어난다면, 그때 할 수 있는 일을 적어봐요.", 15f, FontStyles.Normal, MutedTextColor, TextAlignmentOptions.Left);
+            RectTransform root = CreateStepPanel(parent, "Fact Check View");
+            TMP_Text titleText = CreateText(root, "사실과 추측 나누기", 24f, FontStyles.Bold, TextColor, TextAlignmentOptions.Left);
+            TMP_Text helperText = CreateText(root, "지금 확실히 알고 있는 것과 내가 상상하고 있는 것을 분리해요.", 15f, FontStyles.Normal, MutedTextColor, TextAlignmentOptions.Left);
 
-            TMP_InputField first = CreateInput(root, "행동 1  예: 미리 연습하기", 52f);
-            TMP_InputField second = CreateInput(root, "행동 2  예: 친구에게 피드백 받기", 52f);
-            TMP_InputField third = CreateInput(root, "행동 3  선택 입력", 52f);
-            Button addActionButton = CreateButton(root, "+  행동 추가", new Color(0.99f, 0.96f, 1f), new Color(0.72f, 0.08f, 0.92f), -1f, 44f);
+            TMP_Text factsLabel = CreateText(root, "확실한 사실", 14f, FontStyles.Bold, PrimaryColor, TextAlignmentOptions.Left);
+            AddLayout(factsLabel.gameObject, -1f, 20f);
+            TMP_InputField factsInput = CreateInput(root, "예: 내일 발표가 있다.", 78f);
+
+            TMP_Text assumptionsLabel = CreateText(root, "내가 추측하는 것", 14f, FontStyles.Bold, PrimaryColor, TextAlignmentOptions.Left);
+            AddLayout(assumptionsLabel.gameObject, -1f, 20f);
+            TMP_InputField assumptionsInput = CreateInput(root, "예: 발표를 망칠 것 같다.", 78f);
 
             RectTransform buttonRow = CreateButtonRow(root);
             Button backButton = CreateButton(buttonRow, "이전", SecondaryColor, TextColor, 92f, 42f);
             Button submitButton = CreateButton(buttonRow, "다음", PrimaryColor, Color.white, 112f, 42f);
 
-            CopingPlanView view = root.gameObject.AddComponent<CopingPlanView>();
+            FactCheckView view = root.gameObject.AddComponent<FactCheckView>();
             view.SetRoot(root.gameObject);
             view.SetPromptTexts(titleText, helperText);
-            view.SetControls(new[] { first, second, third }, addActionButton, submitButton, backButton);
+            view.SetControls(factsInput, assumptionsInput, submitButton, backButton);
+            EditorUtility.SetDirty(view);
+            return view;
+        }
+
+        private static ThoughtCheckView CreateThoughtCheckStep(RectTransform parent)
+        {
+            RectTransform root = CreateStepPanel(parent, "Thought Check View");
+            TMP_Text titleText = CreateText(root, "생각 점검하기", 24f, FontStyles.Bold, TextColor, TextAlignmentOptions.Left);
+            TMP_Text helperText = CreateText(root, "생각을 없애려 하지 말고, 어느 정도 사실에 기대고 있는지 확인해요.", 15f, FontStyles.Normal, MutedTextColor, TextAlignmentOptions.Left);
+
+            TMP_Text evidenceLabel = CreateText(root, "그렇게 생각하는 근거", 14f, FontStyles.Bold, PrimaryColor, TextAlignmentOptions.Left);
+            AddLayout(evidenceLabel.gameObject, -1f, 20f);
+            TMP_InputField evidenceInput = CreateInput(root, "예: 지난번에도 긴장해서 말을 더듬었다.", 58f);
+
+            TMP_Text counterLabel = CreateText(root, "반대 근거", 14f, FontStyles.Bold, PrimaryColor, TextAlignmentOptions.Left);
+            AddLayout(counterLabel.gameObject, -1f, 20f);
+            TMP_InputField counterInput = CreateInput(root, "예: 연습한 내용은 기억하고 있다.", 58f);
+
+            TMP_Text alternativeLabel = CreateText(root, "다른 해석", 14f, FontStyles.Bold, PrimaryColor, TextAlignmentOptions.Left);
+            AddLayout(alternativeLabel.gameObject, -1f, 20f);
+            TMP_InputField alternativeInput = CreateInput(root, "예: 긴장해도 발표를 끝낼 수는 있다.", 58f);
+
+            RectTransform buttonRow = CreateButtonRow(root);
+            Button backButton = CreateButton(buttonRow, "이전", SecondaryColor, TextColor, 92f, 42f);
+            Button submitButton = CreateButton(buttonRow, "다음", PrimaryColor, Color.white, 112f, 42f);
+
+            ThoughtCheckView view = root.gameObject.AddComponent<ThoughtCheckView>();
+            view.SetRoot(root.gameObject);
+            view.SetPromptTexts(titleText, helperText);
+            view.SetControls(evidenceInput, counterInput, alternativeInput, submitButton, backButton);
             EditorUtility.SetDirty(view);
             return view;
         }
@@ -676,26 +718,6 @@ namespace SB.App.Editor
             view.SetRoot(root.gameObject);
             view.SetPromptTexts(titleText, helperText);
             view.SetControls(actionInput, submitButton, backButton);
-            EditorUtility.SetDirty(view);
-            return view;
-        }
-
-        private static ProbabilityEstimateView CreateProbabilityStep(RectTransform parent)
-        {
-            RectTransform root = CreateStepPanel(parent, "Probability Estimate View");
-            TMP_Text title = CreateText(root, "확률 가늠하기", 24f, FontStyles.Bold, TextColor, TextAlignmentOptions.Left);
-            TMP_Text helper = CreateText(root, "지금은 이 일이 얼마나 일어날 것처럼 느껴지나요?", 15f, FontStyles.Normal, MutedTextColor, TextAlignmentOptions.Left);
-            TMP_Text percent = CreateText(root, "0%", 36f, FontStyles.Bold, PrimaryColor, TextAlignmentOptions.Center);
-
-            Slider slider = CreateSlider(root);
-            RectTransform buttonRow = CreateButtonRow(root);
-            Button backButton = CreateButton(buttonRow, "이전", SecondaryColor, TextColor, 92f, 42f);
-            Button submitButton = CreateButton(buttonRow, "다음", PrimaryColor, Color.white, 112f, 42f);
-
-            ProbabilityEstimateView view = root.gameObject.AddComponent<ProbabilityEstimateView>();
-            view.SetRoot(root.gameObject);
-            view.SetPromptTexts(title, helper);
-            view.SetControls(slider, percent, submitButton, backButton);
             EditorUtility.SetDirty(view);
             return view;
         }
@@ -734,9 +756,9 @@ namespace SB.App.Editor
             layout.childControlWidth = true;
 
             TMP_Text worry = CreateText(root, "고민", 23f, FontStyles.Bold, TextColor, TextAlignmentOptions.Left);
-            TMP_Text probability = CreateText(root, "0%", 20f, FontStyles.Bold, PrimaryColor, TextAlignmentOptions.Left);
-            TMP_Text coping = CreateText(root, "대처 계획", 15f, FontStyles.Normal, TextColor, TextAlignmentOptions.Left);
-            TMP_Text action = CreateText(root, "지금 할 행동", 15f, FontStyles.Normal, TextColor, TextAlignmentOptions.Left);
+            TMP_Text probability = CreateText(root, "사실 / 추측", 16f, FontStyles.Bold, PrimaryColor, TextAlignmentOptions.Left);
+            TMP_Text coping = CreateText(root, "생각 점검", 15f, FontStyles.Normal, TextColor, TextAlignmentOptions.Left);
+            TMP_Text action = CreateText(root, "행동 / 한 줄 정리", 15f, FontStyles.Normal, TextColor, TextAlignmentOptions.Left);
             TMP_Text emotion = CreateText(root, "감정", 13f, FontStyles.Normal, MutedTextColor, TextAlignmentOptions.Left);
             TMP_Text outcome = CreateText(root, "결과", 13f, FontStyles.Normal, MutedTextColor, TextAlignmentOptions.Left);
 

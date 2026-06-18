@@ -4,9 +4,10 @@ namespace SB.App.Domain
     {
         Whiteboard,
         WorryInput,
-        ProbabilityEstimate,
-        CopingPlan,
+        FactCheck,
+        ThoughtCheck,
         ActionPlan,
+        TakeawaySummary,
         EmotionCheck,
         CardSaved,
         CardDetail,

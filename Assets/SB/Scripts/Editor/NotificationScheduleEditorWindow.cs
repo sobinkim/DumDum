@@ -12,6 +12,7 @@ namespace SB.App.Editor
         private NotificationCatalog _catalog;
         private SerializedObject _serializedCatalog;
         private Vector2 _scroll;
+        private NotificationTriggerType _previewTrigger = NotificationTriggerType.WorryCardSaved;
 
         [MenuItem("DumDum/Notification Rules")]
         public static void Open()
@@ -34,7 +35,7 @@ namespace SB.App.Editor
         private void OnGUI()
         {
             EditorGUILayout.LabelField("DumDum 알림 규칙", EditorStyles.boldLabel);
-            EditorGUILayout.HelpBox("여기서 문구, 트리거, 예약 시간을 바꾸면 런타임 알림 서비스가 그대로 읽어서 스마트폰 알림을 예약합니다.", MessageType.Info);
+            EditorGUILayout.HelpBox("문구, 트리거, 예약 시간, 조건을 바꾸면 런타임 알림 서비스가 그대로 읽어서 알림을 예약합니다. ML-Agent 판단 없이 이 규칙만 사용합니다.", MessageType.Info);
 
             NotificationCatalog selectedCatalog = (NotificationCatalog)EditorGUILayout.ObjectField("Catalog", _catalog, typeof(NotificationCatalog), false);
             if (selectedCatalog != _catalog)
@@ -67,15 +68,130 @@ namespace SB.App.Editor
                     AddRule(CreateTestRule());
             }
 
+            DrawPreview();
+
             EditorGUILayout.Space(8f);
             _serializedCatalog.Update();
             _scroll = EditorGUILayout.BeginScrollView(_scroll);
             SerializedProperty rules = _serializedCatalog.FindProperty("rules");
-            EditorGUILayout.PropertyField(rules, new GUIContent("알림 규칙"), true);
+            DrawRules(rules);
             EditorGUILayout.EndScrollView();
 
             if (_serializedCatalog.ApplyModifiedProperties())
                 EditorUtility.SetDirty(_catalog);
+        }
+
+        private void DrawPreview()
+        {
+            EditorGUILayout.Space(8f);
+            EditorGUILayout.LabelField("조건 미리보기", EditorStyles.boldLabel);
+            _previewTrigger = (NotificationTriggerType)EditorGUILayout.EnumPopup("트리거", _previewTrigger);
+
+            int enabledCount = 0;
+            foreach (NotificationRule rule in _catalog.FindRules(_previewTrigger, NotificationRuleContext.Empty))
+            {
+                EditorGUILayout.LabelField($"예약 가능: {rule.DisplayName}", EditorStyles.miniLabel);
+                enabledCount++;
+            }
+
+            if (enabledCount <= 0)
+                EditorGUILayout.HelpBox("현재 빈 앱 상태 기준으로 예약될 규칙이 없어요. 카드 수/회고 수 조건이 있는 규칙은 실제 런타임 상태에서 평가됩니다.", MessageType.None);
+        }
+
+        private void DrawRules(SerializedProperty rules)
+        {
+            EditorGUILayout.LabelField("알림 규칙", EditorStyles.boldLabel);
+            for (int i = 0; i < rules.arraySize; i++)
+            {
+                SerializedProperty rule = rules.GetArrayElementAtIndex(i);
+                SerializedProperty displayName = rule.FindPropertyRelative("displayName");
+                string title = string.IsNullOrWhiteSpace(displayName.stringValue)
+                    ? $"Rule {i + 1}"
+                    : displayName.stringValue;
+
+                using (new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
+                {
+                    rule.isExpanded = EditorGUILayout.Foldout(rule.isExpanded, title, true);
+                    if (!rule.isExpanded)
+                        continue;
+
+                    EditorGUILayout.PropertyField(rule.FindPropertyRelative("enabled"), new GUIContent("사용"));
+                    EditorGUILayout.PropertyField(rule.FindPropertyRelative("id"), new GUIContent("ID"));
+                    EditorGUILayout.PropertyField(displayName, new GUIContent("이름"));
+                    EditorGUILayout.PropertyField(rule.FindPropertyRelative("triggerType"), new GUIContent("트리거"));
+                    EditorGUILayout.PropertyField(rule.FindPropertyRelative("routeType"), new GUIContent("이동 화면"));
+                    EditorGUILayout.PropertyField(rule.FindPropertyRelative("title"), new GUIContent("제목"));
+                    EditorGUILayout.PropertyField(rule.FindPropertyRelative("body"), new GUIContent("본문"));
+
+                    EditorGUILayout.Space(4f);
+                    EditorGUILayout.LabelField("예약 시간", EditorStyles.boldLabel);
+                    EditorGUILayout.PropertyField(rule.FindPropertyRelative("delayDays"), new GUIContent("며칠 뒤"));
+                    EditorGUILayout.PropertyField(rule.FindPropertyRelative("delayHours"), new GUIContent("몇 시간 뒤"));
+                    EditorGUILayout.PropertyField(rule.FindPropertyRelative("delayMinutes"), new GUIContent("몇 분 뒤"));
+                    EditorGUILayout.PropertyField(rule.FindPropertyRelative("useFixedClockTime"), new GUIContent("고정 시각 사용"));
+                    EditorGUILayout.PropertyField(rule.FindPropertyRelative("fixedHour"), new GUIContent("고정 시"));
+                    EditorGUILayout.PropertyField(rule.FindPropertyRelative("fixedMinute"), new GUIContent("고정 분"));
+                    EditorGUILayout.PropertyField(rule.FindPropertyRelative("repeat"), new GUIContent("반복"));
+                    EditorGUILayout.PropertyField(rule.FindPropertyRelative("repeatIntervalDays"), new GUIContent("반복 간격 일"));
+
+                    DrawConditions(rule.FindPropertyRelative("conditions"));
+
+                    using (new EditorGUILayout.HorizontalScope())
+                    {
+                        if (GUILayout.Button("회고 대기 조건 추가"))
+                            AddCondition(rule, NotificationConditionType.UnreviewedCardCountAtLeast, 1);
+
+                        if (GUILayout.Button("오늘 고민 수 조건 추가"))
+                            AddCondition(rule, NotificationConditionType.TodayWorryCountAtLeast, 2);
+
+                        if (GUILayout.Button("좋았던 결과 비율 조건 추가"))
+                            AddCondition(rule, NotificationConditionType.DidNotHappenPercentAtLeast, 50);
+
+                        if (GUILayout.Button("최근 감정 조건 추가"))
+                            AddCondition(rule, NotificationConditionType.LatestEmotionIs, 0);
+                    }
+
+                    if (GUILayout.Button("이 규칙 삭제"))
+                    {
+                        rules.DeleteArrayElementAtIndex(i);
+                        break;
+                    }
+                }
+            }
+        }
+
+        private static void DrawConditions(SerializedProperty conditions)
+        {
+            EditorGUILayout.Space(4f);
+            EditorGUILayout.LabelField("발송 조건", EditorStyles.boldLabel);
+
+            if (conditions.arraySize <= 0)
+                EditorGUILayout.HelpBox("조건이 없으면 트리거가 발생할 때 항상 예약됩니다.", MessageType.None);
+
+            for (int i = 0; i < conditions.arraySize; i++)
+            {
+                SerializedProperty condition = conditions.GetArrayElementAtIndex(i);
+                using (new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
+                {
+                    using (new EditorGUILayout.HorizontalScope())
+                    {
+                        EditorGUILayout.PropertyField(condition.FindPropertyRelative("enabled"), GUIContent.none, GUILayout.Width(20f));
+                        EditorGUILayout.PropertyField(condition.FindPropertyRelative("conditionType"), GUIContent.none);
+
+                        if (GUILayout.Button("삭제", GUILayout.Width(48f)))
+                        {
+                            conditions.DeleteArrayElementAtIndex(i);
+                            break;
+                        }
+                    }
+
+                    NotificationConditionType type = (NotificationConditionType)condition.FindPropertyRelative("conditionType").enumValueIndex;
+                    if (type == NotificationConditionType.LatestEmotionIs)
+                        EditorGUILayout.PropertyField(condition.FindPropertyRelative("emotionValue"), new GUIContent("감정"));
+                    else if (type != NotificationConditionType.Always)
+                        EditorGUILayout.PropertyField(condition.FindPropertyRelative("intValue"), new GUIContent("값"));
+                }
+            }
         }
 
         private void LoadOrCreateCatalog()
@@ -121,6 +237,19 @@ namespace SB.App.Editor
             AssetDatabase.SaveAssets();
         }
 
+        private static void AddCondition(SerializedProperty rule, NotificationConditionType type, int value)
+        {
+            SerializedProperty conditions = rule.FindPropertyRelative("conditions");
+            int index = conditions.arraySize;
+            conditions.InsertArrayElementAtIndex(index);
+
+            SerializedProperty condition = conditions.GetArrayElementAtIndex(index);
+            condition.FindPropertyRelative("enabled").boolValue = true;
+            condition.FindPropertyRelative("conditionType").enumValueIndex = (int)type;
+            condition.FindPropertyRelative("intValue").intValue = value;
+            condition.FindPropertyRelative("emotionValue").enumValueIndex = (int)WorryEmotionState.StillDistressed;
+        }
+
         private static void WriteRule(SerializedProperty property, NotificationRule rule)
         {
             Set(property, "id", rule.Id);
@@ -138,6 +267,17 @@ namespace SB.App.Editor
             Set(property, "fixedMinute", rule.FixedMinute);
             Set(property, "repeat", rule.Repeat);
             Set(property, "repeatIntervalDays", rule.RepeatIntervalDays);
+            SerializedProperty conditions = property.FindPropertyRelative("conditions");
+            conditions.arraySize = rule.Conditions.Length;
+            for (int i = 0; i < rule.Conditions.Length; i++)
+            {
+                NotificationRuleCondition condition = rule.Conditions[i];
+                SerializedProperty target = conditions.GetArrayElementAtIndex(i);
+                Set(target, "enabled", condition.Enabled);
+                Set(target, "conditionType", (int)condition.ConditionType);
+                Set(target, "intValue", condition.IntValue);
+                Set(target, "emotionValue", (int)condition.EmotionValue);
+            }
         }
 
         private static void Set(SerializedProperty root, string name, string value)
@@ -169,7 +309,13 @@ namespace SB.App.Editor
                 0,
                 true,
                 20,
-                0);
+                0,
+                false,
+                1,
+                new[]
+                {
+                    NotificationRuleCondition.Create(NotificationConditionType.UnreviewedCardCountAtLeast, 1)
+                });
         }
 
         private static NotificationRule CreateDailyClosureRule()

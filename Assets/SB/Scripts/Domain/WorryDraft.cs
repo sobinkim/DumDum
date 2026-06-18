@@ -1,6 +1,4 @@
 using System;
-using System.Collections.Generic;
-using System.Linq;
 
 namespace SB.App.Domain
 {
@@ -8,20 +6,23 @@ namespace SB.App.Domain
     public sealed class WorryDraft
     {
         public string WorryText { get; private set; } = string.Empty;
-        public int ProbabilityPercent { get; private set; }
-        public IReadOnlyList<string> CopingActions => _copingActions;
-        public string CopingPlan => string.Join("\n", _copingActions);
+        public string FactsText { get; private set; } = string.Empty;
+        public string AssumptionsText { get; private set; } = string.Empty;
+        public string EvidenceText { get; private set; } = string.Empty;
+        public string CounterEvidenceText { get; private set; } = string.Empty;
+        public string AlternativeThoughtText { get; private set; } = string.Empty;
         public string ActionPlan { get; private set; } = string.Empty;
         public string Takeaway { get; private set; } = string.Empty;
         public WorryEmotionState EmotionState { get; private set; } = WorryEmotionState.Unset;
 
-        private readonly List<string> _copingActions = new List<string>();
-
         public void Clear()
         {
             WorryText = string.Empty;
-            ProbabilityPercent = 0;
-            _copingActions.Clear();
+            FactsText = string.Empty;
+            AssumptionsText = string.Empty;
+            EvidenceText = string.Empty;
+            CounterEvidenceText = string.Empty;
+            AlternativeThoughtText = string.Empty;
             ActionPlan = string.Empty;
             Takeaway = string.Empty;
             EmotionState = WorryEmotionState.Unset;
@@ -32,24 +33,17 @@ namespace SB.App.Domain
             WorryText = Normalize(value);
         }
 
-        public void SetProbability(int value)
+        public void SetFactCheck(string facts, string assumptions)
         {
-            ProbabilityPercent = Math.Max(0, Math.Min(100, value));
+            FactsText = Normalize(facts);
+            AssumptionsText = Normalize(assumptions);
         }
 
-        public void SetCopingPlan(string value)
+        public void SetThoughtCheck(string evidence, string counterEvidence, string alternativeThought)
         {
-            SetCopingActions(new[] { value });
-        }
-
-        public void SetCopingActions(IEnumerable<string> values)
-        {
-            _copingActions.Clear();
-
-            if (values == null)
-                return;
-
-            _copingActions.AddRange(values.Select(Normalize).Where(action => !string.IsNullOrWhiteSpace(action)));
+            EvidenceText = Normalize(evidence);
+            CounterEvidenceText = Normalize(counterEvidence);
+            AlternativeThoughtText = Normalize(alternativeThought);
         }
 
         public void SetActionPlan(string value)
@@ -68,8 +62,13 @@ namespace SB.App.Domain
         }
 
         public bool HasWorry => !string.IsNullOrWhiteSpace(WorryText);
-        public bool HasCopingPlan => _copingActions.Count > 0;
+        public bool HasFactCheck => !string.IsNullOrWhiteSpace(FactsText) && !string.IsNullOrWhiteSpace(AssumptionsText);
+        public bool HasThoughtCheck =>
+            !string.IsNullOrWhiteSpace(EvidenceText) ||
+            !string.IsNullOrWhiteSpace(CounterEvidenceText) ||
+            !string.IsNullOrWhiteSpace(AlternativeThoughtText);
         public bool HasActionPlan => !string.IsNullOrWhiteSpace(ActionPlan);
+        public bool HasTakeaway => !string.IsNullOrWhiteSpace(Takeaway);
         public bool HasEmotionState => EmotionState != WorryEmotionState.Unset;
 
         private static string Normalize(string value)

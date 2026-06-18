@@ -15,45 +15,25 @@ namespace SB.App.Application
             _gateway = new MobileNotificationGateway();
         }
 
-        public void ScheduleWorryReview(WorryCard card)
+        public void ScheduleWorryReview(WorryCard card, WorryRepository repository)
         {
             if (card == null)
                 return;
 
-            ScheduleRules(NotificationTriggerType.WorryCardSaved, card.CreatedAt, card.Id);
+            ScheduleRules(NotificationTriggerType.WorryCardSaved, card.CreatedAt, card.Id, NotificationRuleContext.From(repository, card));
         }
 
-        public void ScheduleDailyClosure(DailyClosureState closureState)
+        public void ScheduleDailyClosure(DailyClosureState closureState, WorryRepository repository = null)
         {
-            ScheduleRules(NotificationTriggerType.DailyClosureCompleted, closureState.ClosedAt, null);
+            ScheduleRules(NotificationTriggerType.DailyClosureCompleted, closureState.ClosedAt, null, NotificationRuleContext.From(repository));
         }
 
         public void ScheduleManualTest()
         {
-            ScheduleRules(NotificationTriggerType.ManualTest, DateTime.Now, null);
+            ScheduleRules(NotificationTriggerType.ManualTest, DateTime.Now, null, NotificationRuleContext.Empty);
         }
 
-        public bool ScheduleSupportIntervention(SupportInterventionDecision decision, DateTime sourceTime)
-        {
-            if (!decision.HasNotification)
-                return false;
-
-            DateTime fireTime = sourceTime.Add(decision.Delay);
-            if (fireTime <= DateTime.Now)
-                fireTime = DateTime.Now.AddMinutes(1);
-
-            string payload = NotificationPayload.Create(decision.Id, decision.RouteType, decision.CardId);
-            return _gateway.Schedule(new NotificationScheduleRequest(
-                decision.Id,
-                decision.Title,
-                decision.Body,
-                fireTime,
-                false,
-                TimeSpan.FromDays(1),
-                payload));
-        }
-
-        private void ScheduleRules(NotificationTriggerType triggerType, DateTime sourceTime, string cardId)
+        private void ScheduleRules(NotificationTriggerType triggerType, DateTime sourceTime, string cardId, NotificationRuleContext context)
         {
             if (_catalog == null)
             {
@@ -61,7 +41,7 @@ namespace SB.App.Application
                 return;
             }
 
-            foreach (NotificationRule rule in _catalog.FindRules(triggerType))
+            foreach (NotificationRule rule in _catalog.FindRules(triggerType, context))
             {
                 DateTime fireTime = rule.GetFireTime(sourceTime);
                 string payload = NotificationPayload.Create(rule.Id, rule.RouteType, cardId);

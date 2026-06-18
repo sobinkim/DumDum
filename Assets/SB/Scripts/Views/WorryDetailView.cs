@@ -136,10 +136,10 @@ namespace SB.App.Views
                 worryText.text = CreateWorryText(card);
 
             if (probabilityText != null)
-                probabilityText.text = $"처음 예상 확률 {card.ProbabilityPercent}%";
+                probabilityText.text = CreateFactCheckText(card);
 
             if (copingPlanText != null)
-                copingPlanText.text = CreateCopingText(card);
+                copingPlanText.text = CreateThoughtCheckText(card);
 
             if (actionPlanText != null)
                 actionPlanText.text = CreateSummaryText(card);
@@ -173,7 +173,7 @@ namespace SB.App.Views
                 worryText.text = $"이번 걱정 돌아보기\n{Trim(card.WorryText, 72)}";
 
             if (probabilityText != null)
-                probabilityText.text = $"처음 예상 {card.ProbabilityPercent}%";
+                probabilityText.text = CreateFactCheckText(card);
 
             if (copingPlanText != null)
                 copingPlanText.text = $"실제 결과\n{tag.ToLabel()}";
@@ -443,12 +443,29 @@ namespace SB.App.Views
             return $"고민\n{card.WorryText}";
         }
 
-        private static string CreateCopingText(WorryCard card)
+        private static string CreateFactCheckText(WorryCard card)
         {
-            if (card.CopingActions == null || card.CopingActions.Length <= 0)
-                return "대처 행동 기록 없음";
+            string facts = string.IsNullOrWhiteSpace(card.FactsText) ? "기록 없음" : card.FactsText;
+            string assumptions = string.IsNullOrWhiteSpace(card.AssumptionsText) ? "기록 없음" : card.AssumptionsText;
+            return $"사실\n{facts}\n\n추측\n{assumptions}";
+        }
 
-            return "만약 일어났다면\n- " + string.Join("\n- ", card.CopingActions);
+        private static string CreateThoughtCheckText(WorryCard card)
+        {
+            if (!string.IsNullOrWhiteSpace(card.EvidenceText) ||
+                !string.IsNullOrWhiteSpace(card.CounterEvidenceText) ||
+                !string.IsNullOrWhiteSpace(card.AlternativeThoughtText))
+            {
+                return
+                    $"근거\n{CreateValueOrEmpty(card.EvidenceText)}\n\n" +
+                    $"반대 근거\n{CreateValueOrEmpty(card.CounterEvidenceText)}\n\n" +
+                    $"다른 해석\n{CreateValueOrEmpty(card.AlternativeThoughtText)}";
+            }
+
+            if (card.CopingActions == null || card.CopingActions.Length <= 0)
+                return "생각 점검 기록 없음";
+
+            return "이전 대처 기록\n- " + string.Join("\n- ", card.CopingActions);
         }
 
         private static string CreateSummaryText(WorryCard card)
@@ -465,11 +482,11 @@ namespace SB.App.Views
             switch (tag)
             {
                 case WorryOutcomeTag.DidNotHappen:
-                    return $"처음에는 {card.ProbabilityPercent}% 정도 일어날 것 같았지만, 실제로는 일어나지 않았어요.\n다음 걱정이 커질 때 이 카드를 근거로 써볼 수 있어요.";
+                    return "걱정했던 일이 실제로는 일어나지 않았어요.\n다음에 비슷한 생각이 커질 때 이 카드를 근거로 써볼 수 있어요.";
                 case WorryOutcomeTag.PartiallyHappened:
-                    return $"처음에는 {card.ProbabilityPercent}% 정도로 예상했어요. 실제로는 일부만 일어났네요.\n걱정 전체가 현실이 된 건 아니었다는 점을 남겨둘 수 있어요.";
+                    return "일부는 맞았지만 걱정 전체가 현실이 된 것은 아니었어요.\n어떤 부분이 사실이었고 어떤 부분이 추측이었는지 남겨둘 수 있어요.";
                 case WorryOutcomeTag.Happened:
-                    return $"처음에는 {card.ProbabilityPercent}% 정도로 예상했고, 실제로 일어났어요.\n그래도 미리 적어둔 대처 방법이 있었고, 다음에는 대응 가능성을 같이 볼 수 있어요.";
+                    return "예상한 일이 실제로 일어났어요.\n그래도 내가 어떻게 대처했는지를 기록하면 다음 걱정의 재료가 됩니다.";
                 default:
                     return "실제 결과를 기록했어요. 이번 걱정에서 배운 점을 짧게 남겨볼까요?";
             }
@@ -480,14 +497,19 @@ namespace SB.App.Views
             switch (tag)
             {
                 case WorryOutcomeTag.DidNotHappen:
-                    return card.ProbabilityPercent >= 70 ? "크게 느껴졌지만 실제로는 지나갔다" : "걱정했지만 일어나지 않았다";
+                    return "걱정했지만 일어나지 않았다";
                 case WorryOutcomeTag.PartiallyHappened:
                     return "걱정 전체가 현실이 된 건 아니었다";
                 case WorryOutcomeTag.Happened:
-                    return "일어나도 대응할 방법은 있었다";
+                    return "일어나도 대처할 수 있었다";
                 default:
                     return string.Empty;
             }
+        }
+
+        private static string CreateValueOrEmpty(string value)
+        {
+            return string.IsNullOrWhiteSpace(value) ? "기록 없음" : value;
         }
 
         private static string Trim(string value, int maxLength)

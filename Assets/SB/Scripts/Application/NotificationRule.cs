@@ -29,6 +29,7 @@ namespace SB.App.Application
         [SerializeField] private bool repeat;
         [Min(1)]
         [SerializeField] private int repeatIntervalDays = 1;
+        [SerializeField] private NotificationRuleCondition[] conditions;
 
         public string Id => string.IsNullOrWhiteSpace(id) ? displayName : id;
         public string DisplayName => displayName;
@@ -46,6 +47,20 @@ namespace SB.App.Application
         public bool Repeat => repeat;
         public int RepeatIntervalDays => repeatIntervalDays;
         public TimeSpan RepeatInterval => TimeSpan.FromDays(Mathf.Max(1, repeatIntervalDays));
+        public NotificationRuleCondition[] Conditions => conditions ?? Array.Empty<NotificationRuleCondition>();
+
+        public bool AreConditionsMet(NotificationRuleContext context)
+        {
+            NotificationRuleCondition[] ruleConditions = Conditions;
+            for (int i = 0; i < ruleConditions.Length; i++)
+            {
+                NotificationRuleCondition condition = ruleConditions[i];
+                if (condition != null && !condition.IsMet(context))
+                    return false;
+            }
+
+            return true;
+        }
 
         public DateTime GetFireTime(DateTime sourceTime)
         {
@@ -81,7 +96,8 @@ namespace SB.App.Application
             int hour,
             int minute,
             bool shouldRepeat = false,
-            int repeatDays = 1)
+            int repeatDays = 1,
+            NotificationRuleCondition[] ruleConditions = null)
         {
             return new NotificationRule
             {
@@ -99,7 +115,8 @@ namespace SB.App.Application
                 fixedHour = hour,
                 fixedMinute = minute,
                 repeat = shouldRepeat,
-                repeatIntervalDays = Mathf.Max(1, repeatDays)
+                repeatIntervalDays = Mathf.Max(1, repeatDays),
+                conditions = ruleConditions ?? Array.Empty<NotificationRuleCondition>()
             };
         }
     }

@@ -13,7 +13,6 @@ namespace SB.App.Application
         [SerializeField] private WorryDetailView detailView;
 
         private WorryRepository _repository;
-        private SupportInterventionService _supportInterventionService;
         private WorryCard _selectedCard;
         private bool _viewsBound;
         private bool _busBound;
@@ -109,16 +108,10 @@ namespace SB.App.Application
 
         public void Initialize(WorryRepository repository)
         {
-            Initialize(repository, null);
-        }
-
-        public void Initialize(WorryRepository repository, SupportInterventionService supportInterventionService)
-        {
             if (_repository != null)
                 _repository.Changed -= Refresh;
 
             _repository = repository;
-            _supportInterventionService = supportInterventionService;
 
             if (_repository != null)
                 _repository.Changed += Refresh;
@@ -206,7 +199,6 @@ namespace SB.App.Application
 
             _repository.UpdateTakeaway(_selectedCard.Id, takeaway);
             _selectedCard = _repository.Find(_selectedCard.Id);
-            _supportInterventionService?.ScheduleBestReminder(_repository, _selectedCard);
 
             if (detailView != null)
                 detailView.Hide();

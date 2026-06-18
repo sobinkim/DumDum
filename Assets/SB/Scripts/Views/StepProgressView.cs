@@ -21,7 +21,7 @@ namespace SB.App.Views
             Show();
 
             if (stepLabel != null)
-                stepLabel.text = step.ToString();
+                stepLabel.text = GetLabel(step);
 
             if (progressSlider != null)
                 progressSlider.value = GetProgress(step);
@@ -32,17 +32,40 @@ namespace SB.App.Views
             switch (step)
             {
                 case WorryFlowStep.WorryInput:
-                    return 0.2f;
-                case WorryFlowStep.ProbabilityEstimate:
-                    return 0.4f;
-                case WorryFlowStep.CopingPlan:
-                    return 0.6f;
+                    return 1f / 6f;
+                case WorryFlowStep.FactCheck:
+                    return 2f / 6f;
+                case WorryFlowStep.ThoughtCheck:
+                    return 3f / 6f;
                 case WorryFlowStep.ActionPlan:
-                    return 0.8f;
+                    return 4f / 6f;
+                case WorryFlowStep.TakeawaySummary:
+                    return 5f / 6f;
                 case WorryFlowStep.EmotionCheck:
                     return 1f;
                 default:
                     return 0f;
+            }
+        }
+
+        private static string GetLabel(WorryFlowStep step)
+        {
+            switch (step)
+            {
+                case WorryFlowStep.WorryInput:
+                    return "1/6 고민";
+                case WorryFlowStep.FactCheck:
+                    return "2/6 사실";
+                case WorryFlowStep.ThoughtCheck:
+                    return "3/6 점검";
+                case WorryFlowStep.ActionPlan:
+                    return "4/6 행동";
+                case WorryFlowStep.TakeawaySummary:
+                    return "5/6 정리";
+                case WorryFlowStep.EmotionCheck:
+                    return "6/6 감정";
+                default:
+                    return "사고 훈련";
             }
         }
     }

@@ -13,7 +13,7 @@ namespace SB.App.Application
             int happenedPercent,
             int todayCards,
             int takeawayCount,
-            int latestProbabilityPercent,
+            int latestReviewDepthPercent,
             WorryEmotionState latestEmotion,
             string latestTakeaway,
             string latestCardId,
@@ -26,7 +26,7 @@ namespace SB.App.Application
             HappenedPercent = happenedPercent;
             TodayCards = todayCards;
             TakeawayCount = takeawayCount;
-            LatestProbabilityPercent = latestProbabilityPercent;
+            LatestReviewDepthPercent = latestReviewDepthPercent;
             LatestEmotion = latestEmotion;
             LatestTakeaway = latestTakeaway ?? string.Empty;
             LatestCardId = latestCardId ?? string.Empty;
@@ -40,7 +40,7 @@ namespace SB.App.Application
         public int HappenedPercent { get; }
         public int TodayCards { get; }
         public int TakeawayCount { get; }
-        public int LatestProbabilityPercent { get; }
+        public int LatestReviewDepthPercent { get; }
         public WorryEmotionState LatestEmotion { get; }
         public string LatestTakeaway { get; }
         public string LatestCardId { get; }

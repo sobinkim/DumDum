@@ -13,13 +13,18 @@ namespace SB.App.Application
 
         public IEnumerable<NotificationRule> FindRules(NotificationTriggerType triggerType)
         {
+            return FindRules(triggerType, NotificationRuleContext.Empty);
+        }
+
+        public IEnumerable<NotificationRule> FindRules(NotificationTriggerType triggerType, NotificationRuleContext context)
+        {
             if (rules == null)
                 yield break;
 
             for (int i = 0; i < rules.Length; i++)
             {
                 NotificationRule rule = rules[i];
-                if (rule != null && rule.Enabled && rule.TriggerType == triggerType)
+                if (rule != null && rule.Enabled && rule.TriggerType == triggerType && rule.AreConditionsMet(context))
                     yield return rule;
             }
         }
@@ -45,7 +50,13 @@ namespace SB.App.Application
                     0,
                     true,
                     20,
-                    0),
+                    0,
+                    false,
+                    1,
+                    new[]
+                    {
+                        NotificationRuleCondition.Create(NotificationConditionType.UnreviewedCardCountAtLeast, 1)
+                    }),
                 NotificationRule.Create(
                     "daily-closure-next-noon",
                     "다음날 다시 사용 가능",

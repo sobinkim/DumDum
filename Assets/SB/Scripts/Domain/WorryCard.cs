@@ -1,5 +1,4 @@
 using System;
-using System.Linq;
 
 namespace SB.App.Domain
 {
@@ -9,6 +8,11 @@ namespace SB.App.Domain
         public string Id { get; private set; }
         public DateTime CreatedAt { get; private set; }
         public string WorryText { get; private set; }
+        public string FactsText { get; private set; }
+        public string AssumptionsText { get; private set; }
+        public string EvidenceText { get; private set; }
+        public string CounterEvidenceText { get; private set; }
+        public string AlternativeThoughtText { get; private set; }
         public int ProbabilityPercent { get; private set; }
         public string[] CopingActions { get; private set; }
         public string CopingPlan => CopingActions == null ? string.Empty : string.Join("\n", CopingActions);
@@ -22,21 +26,31 @@ namespace SB.App.Domain
             string id,
             DateTime createdAt,
             string worryText,
-            int probabilityPercent,
-            string[] copingActions,
+            string factsText,
+            string assumptionsText,
+            string evidenceText,
+            string counterEvidenceText,
+            string alternativeThoughtText,
             string actionPlan,
             string takeaway,
             WorryEmotionState emotionState,
             WorryOutcomeTag outcomeTag = WorryOutcomeTag.Untagged,
-            DateTime? outcomeTaggedAt = null)
+            DateTime? outcomeTaggedAt = null,
+            int probabilityPercent = 0,
+            string[] copingActions = null)
         {
             Id = id;
             CreatedAt = createdAt;
-            WorryText = worryText;
+            WorryText = Normalize(worryText);
+            FactsText = Normalize(factsText);
+            AssumptionsText = Normalize(assumptionsText);
+            EvidenceText = Normalize(evidenceText);
+            CounterEvidenceText = Normalize(counterEvidenceText);
+            AlternativeThoughtText = Normalize(alternativeThoughtText);
             ProbabilityPercent = probabilityPercent;
             CopingActions = copingActions ?? Array.Empty<string>();
-            ActionPlan = actionPlan;
-            Takeaway = takeaway;
+            ActionPlan = Normalize(actionPlan);
+            Takeaway = Normalize(takeaway);
             EmotionState = emotionState;
             OutcomeTag = outcomeTag;
             OutcomeTaggedAt = outcomeTaggedAt;
@@ -48,8 +62,11 @@ namespace SB.App.Domain
                 Guid.NewGuid().ToString("N"),
                 DateTime.Now,
                 draft.WorryText,
-                draft.ProbabilityPercent,
-                draft.CopingActions.ToArray(),
+                draft.FactsText,
+                draft.AssumptionsText,
+                draft.EvidenceText,
+                draft.CounterEvidenceText,
+                draft.AlternativeThoughtText,
                 draft.ActionPlan,
                 draft.Takeaway,
                 draft.EmotionState);
@@ -59,25 +76,68 @@ namespace SB.App.Domain
             string id,
             DateTime createdAt,
             string worryText,
-            int probabilityPercent,
-            string[] copingActions,
+            string factsText,
+            string assumptionsText,
+            string evidenceText,
+            string counterEvidenceText,
+            string alternativeThoughtText,
             string actionPlan,
             string takeaway,
             WorryEmotionState emotionState,
             WorryOutcomeTag outcomeTag,
             DateTime? outcomeTaggedAt)
         {
-            return new WorryCard(
+            return Restore(
                 id,
                 createdAt,
                 worryText,
-                probabilityPercent,
-                copingActions,
+                factsText,
+                assumptionsText,
+                evidenceText,
+                counterEvidenceText,
+                alternativeThoughtText,
                 actionPlan,
                 takeaway,
                 emotionState,
                 outcomeTag,
-                outcomeTaggedAt);
+                outcomeTaggedAt,
+                0,
+                Array.Empty<string>());
+        }
+
+        public static WorryCard Restore(
+            string id,
+            DateTime createdAt,
+            string worryText,
+            string factsText,
+            string assumptionsText,
+            string evidenceText,
+            string counterEvidenceText,
+            string alternativeThoughtText,
+            string actionPlan,
+            string takeaway,
+            WorryEmotionState emotionState,
+            WorryOutcomeTag outcomeTag,
+            DateTime? outcomeTaggedAt,
+            int probabilityPercent,
+            string[] copingActions)
+        {
+            return new WorryCard(
+                id,
+                createdAt,
+                worryText,
+                factsText,
+                assumptionsText,
+                evidenceText,
+                counterEvidenceText,
+                alternativeThoughtText,
+                actionPlan,
+                takeaway,
+                emotionState,
+                outcomeTag,
+                outcomeTaggedAt,
+                probabilityPercent,
+                copingActions);
         }
 
         public void TagOutcome(WorryOutcomeTag tag)
@@ -88,7 +148,12 @@ namespace SB.App.Domain
 
         public void UpdateTakeaway(string takeaway)
         {
-            Takeaway = string.IsNullOrWhiteSpace(takeaway) ? string.Empty : takeaway.Trim();
+            Takeaway = Normalize(takeaway);
+        }
+
+        private static string Normalize(string value)
+        {
+            return string.IsNullOrWhiteSpace(value) ? string.Empty : value.Trim();
         }
     }
 }

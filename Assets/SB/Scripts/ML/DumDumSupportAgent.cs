@@ -45,7 +45,7 @@ namespace SB.App.ML
             sensor.AddObservation(DumDumSupportTrainingEnvironment.NormalizePercent(_context.HappenedPercent));
             sensor.AddObservation(DumDumSupportTrainingEnvironment.NormalizeCount(_context.TodayCards, DumDumSupportTrainingEnvironment.MaxTodayCardObservationCount));
             sensor.AddObservation(DumDumSupportTrainingEnvironment.NormalizeCount(_context.TakeawayCount, DumDumSupportTrainingEnvironment.MaxTakeawayObservationCount));
-            sensor.AddObservation(DumDumSupportTrainingEnvironment.NormalizePercent(_context.LatestProbabilityPercent));
+            sensor.AddObservation(DumDumSupportTrainingEnvironment.NormalizePercent(_context.LatestReviewDepthPercent));
             sensor.AddObservation(DumDumSupportTrainingEnvironment.NormalizeEmotion(_context.LatestEmotion));
             sensor.AddObservation(_context.HasTakeaway ? 1f : 0f);
             sensor.AddObservation(_context.LatestEmotionIsHeavy ? 1f : 0f);

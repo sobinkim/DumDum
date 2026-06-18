@@ -28,6 +28,7 @@ MonoBehaviour:
     fixedMinute: 0
     repeat: 0
     repeatIntervalDays: 0
+    conditions: []
   - id: worry-review-custom
     displayName: "\uACE0\uBBFC \uACB0\uACFC \uD655\uC778"
     enabled: 1
@@ -43,3 +44,8 @@ MonoBehaviour:
     fixedMinute: 0
     repeat: 0
     repeatIntervalDays: 1
+    conditions:
+    - enabled: 1
+      conditionType: 1
+      intValue: 1
+      emotionValue: 1

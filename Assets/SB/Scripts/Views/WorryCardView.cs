@@ -73,7 +73,7 @@ namespace SB.App.Views
                 worryText.text = Trim(card.WorryText, 34);
 
             if (actionText != null)
-                actionText.text = CreateActionText(string.IsNullOrWhiteSpace(card.Takeaway) ? card.ActionPlan : card.Takeaway);
+                actionText.text = CreateActionText(CreatePreviewLine(card));
 
             if (outcomeText != null)
                 outcomeText.text = card.OutcomeTag == WorryOutcomeTag.Untagged ? string.Empty : card.OutcomeTag.ToLabel();
@@ -142,6 +142,17 @@ namespace SB.App.Views
                 return string.Empty;
 
             return $"\"{Trim(actionPlan, 24)}\"";
+        }
+
+        private static string CreatePreviewLine(WorryCard card)
+        {
+            if (!string.IsNullOrWhiteSpace(card.Takeaway))
+                return card.Takeaway;
+
+            if (!string.IsNullOrWhiteSpace(card.AlternativeThoughtText))
+                return card.AlternativeThoughtText;
+
+            return card.ActionPlan;
         }
 
         private static string Trim(string value, int maxLength)

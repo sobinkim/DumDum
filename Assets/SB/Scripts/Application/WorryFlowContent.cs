@@ -51,12 +51,14 @@ namespace SB.App.Application
                     return "증거 화이트보드";
                 case WorryFlowStep.WorryInput:
                     return "고민 적기";
-                case WorryFlowStep.ProbabilityEstimate:
-                    return "확률 가늠하기";
-                case WorryFlowStep.CopingPlan:
-                    return "최악의 경우 대비하기";
+                case WorryFlowStep.FactCheck:
+                    return "사실과 추측 나누기";
+                case WorryFlowStep.ThoughtCheck:
+                    return "생각 점검하기";
                 case WorryFlowStep.ActionPlan:
                     return "지금 할 수 있는 행동 정하기";
+                case WorryFlowStep.TakeawaySummary:
+                    return "한 줄로 정리하기";
                 case WorryFlowStep.EmotionCheck:
                     return "마음 상태 확인하기";
                 case WorryFlowStep.CardSaved:

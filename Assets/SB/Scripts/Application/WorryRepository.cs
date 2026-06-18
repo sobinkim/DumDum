@@ -102,6 +102,11 @@ namespace SB.App.Application
             public string id;
             public long createdAtUtcTicks;
             public string worryText;
+            public string factsText;
+            public string assumptionsText;
+            public string evidenceText;
+            public string counterEvidenceText;
+            public string alternativeThoughtText;
             public int probabilityPercent;
             public string[] copingActions;
             public string actionPlan;
@@ -117,6 +122,11 @@ namespace SB.App.Application
                     id = card.Id,
                     createdAtUtcTicks = card.CreatedAt.ToUniversalTime().Ticks,
                     worryText = card.WorryText,
+                    factsText = card.FactsText,
+                    assumptionsText = card.AssumptionsText,
+                    evidenceText = card.EvidenceText,
+                    counterEvidenceText = card.CounterEvidenceText,
+                    alternativeThoughtText = card.AlternativeThoughtText,
                     probabilityPercent = card.ProbabilityPercent,
                     copingActions = card.CopingActions,
                     actionPlan = card.ActionPlan,
@@ -143,13 +153,18 @@ namespace SB.App.Application
                     id,
                     createdAt,
                     worryText,
-                    probabilityPercent,
-                    copingActions,
+                    factsText,
+                    assumptionsText,
+                    evidenceText,
+                    counterEvidenceText,
+                    alternativeThoughtText,
                     actionPlan,
                     takeaway,
                     emotionState,
                     outcomeTag,
-                    taggedAt);
+                    taggedAt,
+                    probabilityPercent,
+                    copingActions);
             }
         }
     }

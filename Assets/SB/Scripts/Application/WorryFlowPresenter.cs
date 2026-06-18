@@ -1,5 +1,4 @@
 using Core.EventBus;
-using System.Collections.Generic;
 using SB.App.Domain;
 using SB.App.Events;
 using SB.App.Views;
@@ -26,16 +25,16 @@ namespace SB.App.Application
 
         [Header("Flow Views")]
         [SerializeField] private WorryInputView worryInputView;
-        [SerializeField] private ProbabilityEstimateView probabilityEstimateView;
-        [SerializeField] private CopingPlanView copingPlanView;
+        [SerializeField] private FactCheckView factCheckView;
+        [SerializeField] private ThoughtCheckView thoughtCheckView;
         [SerializeField] private ActionPlanView actionPlanView;
+        [SerializeField] private TakeawaySummaryView takeawaySummaryView;
         [SerializeField] private EmotionCheckView emotionCheckView;
 
         private readonly WorryDraft _draft = new WorryDraft();
         private WorryRepository _repository;
         private DailyClosureService _dailyClosureService;
         private MobileNotificationService _notificationService;
-        private SupportInterventionService _supportInterventionService;
         private bool _viewsBound;
 
         private void Awake()
@@ -57,9 +56,10 @@ namespace SB.App.Application
             FeedbackPopupView feedbackPopup,
             StepProgressView progress,
             WorryInputView worryInput,
-            ProbabilityEstimateView probabilityEstimate,
-            CopingPlanView copingPlan,
+            FactCheckView factCheck,
+            ThoughtCheckView thoughtCheck,
             ActionPlanView actionPlan,
+            TakeawaySummaryView takeawaySummary,
             EmotionCheckView emotionCheck,
             DailyClosureView dailyClosure = null,
             NotificationCatalog notifications = null)
@@ -75,9 +75,10 @@ namespace SB.App.Application
             feedbackPopupView = feedbackPopup;
             progressView = progress;
             worryInputView = worryInput;
-            probabilityEstimateView = probabilityEstimate;
-            copingPlanView = copingPlan;
+            factCheckView = factCheck;
+            thoughtCheckView = thoughtCheck;
             actionPlanView = actionPlan;
+            takeawaySummaryView = takeawaySummary;
             emotionCheckView = emotionCheck;
             dailyClosureView = dailyClosure;
 
@@ -89,11 +90,10 @@ namespace SB.App.Application
             _dailyClosureService = new DailyClosureService();
             _dailyClosureService.ClearExpiredLock();
             _notificationService = new MobileNotificationService(notificationCatalog);
-            _supportInterventionService = new SupportInterventionService(_notificationService);
             _repository = new WorryRepository();
 
             if (whiteboardPresenter != null)
-                whiteboardPresenter.Initialize(_repository, _supportInterventionService);
+                whiteboardPresenter.Initialize(_repository);
 
             BindViews();
 
@@ -141,28 +141,34 @@ namespace SB.App.Application
                 worryInputView.BackRequested += CancelFlow;
             }
 
-            if (probabilityEstimateView != null)
+            if (factCheckView != null)
             {
-                probabilityEstimateView.Submitted += SubmitProbability;
-                probabilityEstimateView.BackRequested += BackToWorryInput;
+                factCheckView.Submitted += SubmitFactCheck;
+                factCheckView.BackRequested += BackToWorryInput;
             }
 
-            if (copingPlanView != null)
+            if (thoughtCheckView != null)
             {
-                copingPlanView.Submitted += SubmitCopingPlan;
-                copingPlanView.BackRequested += BackToProbabilityEstimate;
+                thoughtCheckView.Submitted += SubmitThoughtCheck;
+                thoughtCheckView.BackRequested += BackToFactCheck;
             }
 
             if (actionPlanView != null)
             {
                 actionPlanView.Submitted += SubmitActionPlan;
-                actionPlanView.BackRequested += BackToCopingPlan;
+                actionPlanView.BackRequested += BackToThoughtCheck;
+            }
+
+            if (takeawaySummaryView != null)
+            {
+                takeawaySummaryView.Submitted += SubmitTakeaway;
+                takeawaySummaryView.BackRequested += BackToActionPlan;
             }
 
             if (emotionCheckView != null)
             {
                 emotionCheckView.EmotionSelected += SubmitEmotion;
-                emotionCheckView.BackRequested += BackToActionPlan;
+                emotionCheckView.BackRequested += BackToTakeawaySummary;
             }
 
             if (dailyClosureView != null)
@@ -194,28 +200,34 @@ namespace SB.App.Application
                 worryInputView.BackRequested -= CancelFlow;
             }
 
-            if (probabilityEstimateView != null)
+            if (factCheckView != null)
             {
-                probabilityEstimateView.Submitted -= SubmitProbability;
-                probabilityEstimateView.BackRequested -= BackToWorryInput;
+                factCheckView.Submitted -= SubmitFactCheck;
+                factCheckView.BackRequested -= BackToWorryInput;
             }
 
-            if (copingPlanView != null)
+            if (thoughtCheckView != null)
             {
-                copingPlanView.Submitted -= SubmitCopingPlan;
-                copingPlanView.BackRequested -= BackToProbabilityEstimate;
+                thoughtCheckView.Submitted -= SubmitThoughtCheck;
+                thoughtCheckView.BackRequested -= BackToFactCheck;
             }
 
             if (actionPlanView != null)
             {
                 actionPlanView.Submitted -= SubmitActionPlan;
-                actionPlanView.BackRequested -= BackToCopingPlan;
+                actionPlanView.BackRequested -= BackToThoughtCheck;
+            }
+
+            if (takeawaySummaryView != null)
+            {
+                takeawaySummaryView.Submitted -= SubmitTakeaway;
+                takeawaySummaryView.BackRequested -= BackToActionPlan;
             }
 
             if (emotionCheckView != null)
             {
                 emotionCheckView.EmotionSelected -= SubmitEmotion;
-                emotionCheckView.BackRequested -= BackToActionPlan;
+                emotionCheckView.BackRequested -= BackToTakeawaySummary;
             }
 
             if (dailyClosureView != null)
@@ -233,26 +245,33 @@ namespace SB.App.Application
 
             if (!_draft.HasWorry)
             {
-                ShowFeedback("먼저 고민을 적어주세요.");
+                ShowFeedback("지금 고민되는 일을 한 문장으로 적어주세요.");
                 return;
             }
 
-            ShowStep(WorryFlowStep.ProbabilityEstimate);
+            ShowStep(WorryFlowStep.FactCheck);
         }
 
-        private void SubmitProbability(int probabilityPercent)
+        private void SubmitFactCheck(string facts, string assumptions)
         {
-            _draft.SetProbability(probabilityPercent);
-            ShowStep(WorryFlowStep.CopingPlan);
-        }
+            _draft.SetFactCheck(facts, assumptions);
 
-        private void SubmitCopingPlan(IReadOnlyList<string> copingActions)
-        {
-            _draft.SetCopingActions(copingActions);
-
-            if (!_draft.HasCopingPlan)
+            if (!_draft.HasFactCheck)
             {
-                ShowFeedback("정말 일어났을 때 할 수 있는 일을 하나 적어주세요.");
+                ShowFeedback("확실한 사실과 내가 추측한 내용을 나누어 적어주세요.");
+                return;
+            }
+
+            ShowStep(WorryFlowStep.ThoughtCheck);
+        }
+
+        private void SubmitThoughtCheck(string evidence, string counterEvidence, string alternativeThought)
+        {
+            _draft.SetThoughtCheck(evidence, counterEvidence, alternativeThought);
+
+            if (!_draft.HasThoughtCheck)
+            {
+                ShowFeedback("지금 생각을 점검할 근거나 다른 해석을 하나 적어주세요.");
                 return;
             }
 
@@ -262,11 +281,23 @@ namespace SB.App.Application
         private void SubmitActionPlan(string actionPlan)
         {
             _draft.SetActionPlan(actionPlan);
-            _draft.SetTakeaway(string.Empty);
 
             if (!_draft.HasActionPlan)
             {
                 ShowFeedback("지금 할 수 있는 작은 행동을 하나 적어주세요.");
+                return;
+            }
+
+            ShowStep(WorryFlowStep.TakeawaySummary);
+        }
+
+        private void SubmitTakeaway(string takeaway)
+        {
+            _draft.SetTakeaway(takeaway);
+
+            if (!_draft.HasTakeaway)
+            {
+                ShowFeedback("이번 정리를 기억할 한 줄을 적어주세요.");
                 return;
             }
 
@@ -290,8 +321,7 @@ namespace SB.App.Application
         {
             WorryCard card = WorryCard.FromDraft(_draft);
             _repository.Add(card);
-            _notificationService?.ScheduleWorryReview(card);
-            _supportInterventionService?.ScheduleBestReminder(_repository, card);
+            _notificationService?.ScheduleWorryReview(card, _repository);
             Bus<WorryCardCreatedEvent>.Raise(new WorryCardCreatedEvent(card));
 
             _draft.Clear();
@@ -303,19 +333,24 @@ namespace SB.App.Application
             ShowStep(WorryFlowStep.WorryInput);
         }
 
-        private void BackToProbabilityEstimate()
+        private void BackToFactCheck()
         {
-            ShowStep(WorryFlowStep.ProbabilityEstimate);
+            ShowStep(WorryFlowStep.FactCheck);
         }
 
-        private void BackToCopingPlan()
+        private void BackToThoughtCheck()
         {
-            ShowStep(WorryFlowStep.CopingPlan);
+            ShowStep(WorryFlowStep.ThoughtCheck);
         }
 
         private void BackToActionPlan()
         {
             ShowStep(WorryFlowStep.ActionPlan);
+        }
+
+        private void BackToTakeawaySummary()
+        {
+            ShowStep(WorryFlowStep.TakeawaySummary);
         }
 
         private void ShowWhiteboard()
@@ -379,14 +414,17 @@ namespace SB.App.Application
                 case WorryFlowStep.WorryInput:
                     ShowWorryInput(content);
                     break;
-                case WorryFlowStep.ProbabilityEstimate:
-                    ShowProbabilityEstimate(content);
+                case WorryFlowStep.FactCheck:
+                    ShowFactCheck(content);
                     break;
-                case WorryFlowStep.CopingPlan:
-                    ShowCopingPlan(content);
+                case WorryFlowStep.ThoughtCheck:
+                    ShowThoughtCheck(content);
                     break;
                 case WorryFlowStep.ActionPlan:
                     ShowActionPlan(content);
+                    break;
+                case WorryFlowStep.TakeawaySummary:
+                    ShowTakeawaySummary(content);
                     break;
                 case WorryFlowStep.EmotionCheck:
                     ShowEmotionCheck(content);
@@ -404,24 +442,24 @@ namespace SB.App.Application
             worryInputView.Show();
         }
 
-        private void ShowProbabilityEstimate(WorryStepContent content)
+        private void ShowFactCheck(WorryStepContent content)
         {
-            if (probabilityEstimateView == null)
+            if (factCheckView == null)
                 return;
 
-            probabilityEstimateView.ApplyContent(content);
-            probabilityEstimateView.SetProbability(_draft.ProbabilityPercent);
-            probabilityEstimateView.Show();
+            factCheckView.ApplyContent(content);
+            factCheckView.SetInputs(_draft.FactsText, _draft.AssumptionsText);
+            factCheckView.Show();
         }
 
-        private void ShowCopingPlan(WorryStepContent content)
+        private void ShowThoughtCheck(WorryStepContent content)
         {
-            if (copingPlanView == null)
+            if (thoughtCheckView == null)
                 return;
 
-            copingPlanView.ApplyContent(content);
-            copingPlanView.SetActions(_draft.CopingActions);
-            copingPlanView.Show();
+            thoughtCheckView.ApplyContent(content);
+            thoughtCheckView.SetInputs(_draft.EvidenceText, _draft.CounterEvidenceText, _draft.AlternativeThoughtText);
+            thoughtCheckView.Show();
         }
 
         private void ShowActionPlan(WorryStepContent content)
@@ -432,6 +470,16 @@ namespace SB.App.Application
             actionPlanView.ApplyContent(content);
             actionPlanView.SetInput(_draft.ActionPlan);
             actionPlanView.Show();
+        }
+
+        private void ShowTakeawaySummary(WorryStepContent content)
+        {
+            if (takeawaySummaryView == null)
+                return;
+
+            takeawaySummaryView.ApplyContent(content);
+            takeawaySummaryView.SetInput(_draft.Takeaway);
+            takeawaySummaryView.Show();
         }
 
         private void ShowEmotionCheck(WorryStepContent content)
@@ -448,14 +496,17 @@ namespace SB.App.Application
             if (worryInputView != null)
                 worryInputView.Hide();
 
-            if (probabilityEstimateView != null)
-                probabilityEstimateView.Hide();
+            if (factCheckView != null)
+                factCheckView.Hide();
 
-            if (copingPlanView != null)
-                copingPlanView.Hide();
+            if (thoughtCheckView != null)
+                thoughtCheckView.Hide();
 
             if (actionPlanView != null)
                 actionPlanView.Hide();
+
+            if (takeawaySummaryView != null)
+                takeawaySummaryView.Hide();
 
             if (emotionCheckView != null)
                 emotionCheckView.Hide();
@@ -467,7 +518,7 @@ namespace SB.App.Application
                 ? _dailyClosureService.CloseToday()
                 : new DailyClosureState(System.DateTime.Now, System.DateTime.Now.Date.AddDays(1).AddHours(12));
 
-            _notificationService?.ScheduleDailyClosure(state);
+            _notificationService?.ScheduleDailyClosure(state, _repository);
             ShowDailyClosureScreen();
         }
 
