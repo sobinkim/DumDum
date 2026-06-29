@@ -28,7 +28,6 @@ namespace SB.App.Views
         private void Awake()
         {
             RegisterListeners();
-            Hide();
         }
 
         private void OnDestroy()

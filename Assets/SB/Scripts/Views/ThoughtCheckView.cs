@@ -47,7 +47,7 @@ namespace SB.App.Views
                 evidenceInput.text = evidence ?? string.Empty;
 
             if (counterEvidenceInput != null)
-                counterEvidenceInput.text = counterEvidence ?? string.Empty;
+                counterEvidenceInput.text = string.Empty;
         }
 
         private void RegisterListeners()
@@ -81,8 +81,7 @@ namespace SB.App.Views
         private void SubmitCurrentInputs()
         {
             string evidence = evidenceInput != null ? evidenceInput.text : string.Empty;
-            string counterEvidence = counterEvidenceInput != null ? counterEvidenceInput.text : string.Empty;
-            Submitted?.Invoke(evidence, counterEvidence);
+            Submitted?.Invoke(evidence, string.Empty);
         }
 
         private void RequestBack()

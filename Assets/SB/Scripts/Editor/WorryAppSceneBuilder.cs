@@ -659,11 +659,7 @@ namespace SB.App.Editor
 
             TMP_Text evidenceLabel = CreateText(root, "洹몃젃寃??앷컖?섎뒗 洹쇨굅", 14f, FontStyles.Bold, PrimaryColor, TextAlignmentOptions.Left);
             AddLayout(evidenceLabel.gameObject, -1f, 20f);
-            TMP_InputField evidenceInput = CreateInput(root, "?? 吏?쒕쾲?먮룄 湲댁옣?댁꽌 留먯쓣 ?붾벉?덈떎.", 58f);
-
-            TMP_Text counterLabel = CreateText(root, "諛섎? 洹쇨굅", 14f, FontStyles.Bold, PrimaryColor, TextAlignmentOptions.Left);
-            AddLayout(counterLabel.gameObject, -1f, 20f);
-            TMP_InputField counterInput = CreateInput(root, "?? ?곗뒿???댁슜? 湲곗뼲?섍퀬 ?덈떎.", 58f);
+            TMP_InputField evidenceInput = CreateInput(root, "?? 吏?쒕쾲?먮룄 湲댁옣?댁꽌 留먯쓣 ?붾벉?덈떎.", 132f);
 
             RectTransform buttonRow = CreateButtonRow(root);
             Button backButton = CreateButton(buttonRow, "?댁쟾", SecondaryColor, TextColor, 92f, 42f);
@@ -672,7 +668,7 @@ namespace SB.App.Editor
             ThoughtCheckView view = root.gameObject.AddComponent<ThoughtCheckView>();
             view.SetRoot(root.gameObject);
             view.SetPromptTexts(titleText, helperText);
-            view.SetControls(evidenceInput, counterInput, submitButton, backButton);
+            view.SetControls(evidenceInput, null, submitButton, backButton);
             EditorUtility.SetDirty(view);
             return view;
         }

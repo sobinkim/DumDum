@@ -60,9 +60,7 @@ namespace SB.App.Domain
 
         public bool HasWorry => !string.IsNullOrWhiteSpace(WorryText);
         public bool HasFactCheck => !string.IsNullOrWhiteSpace(FactsText) && !string.IsNullOrWhiteSpace(AssumptionsText);
-        public bool HasThoughtCheck =>
-            !string.IsNullOrWhiteSpace(EvidenceText) ||
-            !string.IsNullOrWhiteSpace(CounterEvidenceText);
+        public bool HasThoughtCheck => !string.IsNullOrWhiteSpace(EvidenceText);
         public bool HasActionPlan => !string.IsNullOrWhiteSpace(ActionPlan);
         public bool HasTakeaway => !string.IsNullOrWhiteSpace(Takeaway);
         public bool HasEmotionState => EmotionState != WorryEmotionState.Unset;
